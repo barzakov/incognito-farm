@@ -36,8 +36,8 @@
 ### Database changes
 
 - **Never edit existing migration files.**
-- For every schema change, create a new migration file in `supabase/migrations_applyed/` and apply it (or delete it) only after approval.
-- After each approved migration: query `supabase_migrations.schema_migrations` to get the migration history, then save each new migration file to `supabase/migrations/` and mark it as read-only.
+- For every schema change, create a new migration file in `supabase/migrations_applyed/` and apply it and delete it only after approval.
+- After each migration: query `supabase_migrations.schema_migrations` to get the migration history, then save each new migration in to file in file to `supabase/migrations/` and mark it as read-only.
 
 ### Database schema
 
