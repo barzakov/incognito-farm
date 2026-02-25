@@ -1,0 +1,41 @@
+# Supabase Local Development Configuration
+# See https://supabase.com/docs/reference/cli/usage#supabase-init
+
+[project]
+# Project ID - required for cloud deployments
+project_id = ""
+organization_id = ""
+region = "eu-central-1"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[realtime]
+enabled = true
+max_bytes_per_second = 1000000
+
+[storage]
+file_size_limit = 52428800
+allowed_mime_types = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "application/pdf"
+]
+
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = [
+  "http://localhost:5173/**"
+]
+jwt_expiry = 3600
+refresh_token_rotation_enabled = true

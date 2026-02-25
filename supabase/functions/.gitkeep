@@ -1,0 +1,2 @@
+# This directory stores Supabase Edge Functions
+# Create functions in subdirectories: functions/my_function/index.ts

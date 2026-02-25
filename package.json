@@ -1,0 +1,18 @@
+{
+  "name": "incognito-farm",
+  "version": "1.0.0",
+  "description": "Incognito Farm - Bulgarian Agricultural App",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
