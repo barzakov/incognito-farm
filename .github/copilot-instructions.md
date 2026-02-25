@@ -1,85 +1,112 @@
-Requirements:
-    The instruction should not be implemented immediately, they should be followed when something have to done.
-    Technologies
-        • Frontend: HTML, CSS, JavaScript and Bootstrap. It should be simple with JavaScript and without TypeScript, React or Vue.
-        • Backend: Supabase as a backend for database, authentication and storage.
-        • Build tools: Node.js, npm, Vite
-    Architecture
-        • The app should be with modular components and mobile friendly responsive design.
-        • All pages should be separated: multi-page navigation. For example the url should be site_name/user/1 or site_name/user/1 or site_name/product/1 or site_name/admin/ or site_name/home/
-            - Each page should be in speared dir in the app and it that dir it should have its javascritp html and css.
-            - Each file with code should be small and there should not be duplicate code functions.
-        • Routing and navigation between pages
-        • Split the site layout into components: header, page content, footer
-        • Page should be render dynamically
+# Requirements
 
-    Language:
-        All site text should be in Bulgarian
-        All code should be in english.
-    Supabase:
-        Authentication and Authorization: Supabase Auth with JWT tokens.
-            • Use Row-Level Security (RLS) policies to implement access control.
-        Databases changes:
-            - Migration files should not be edited!
-            - For each ne change we should have tem file for the migration in supabase/migrations/ and applied and deleted on approval
-            - After each migration: Get the migration history table from the DB "supabase_migrations.schema_migrations" and add each new migration file to supabase/migrations as read-only file permissions.
-        Database schema:
-            There should be one table users:
-                - with main column user_id (primary key auto increment)
-                - there should be column for the name, second name, lastname, supa_user_uuid, created_on, deleted_on and boss relation to the id in supabase auth.users chek this doc https://supabase.com/docs/guides/auth/managing-user-data
-                - I donto like to use supabaseuser ids I want to use in the apps the id from this table users, so auth.users uuid should be in supa_user_uuid, relation, but if supabase uuid is deleted in my table it should stay.
-                - The table users column boss should be true or false.
-            There should a view:
-                - If I need info from auth.users I should get all info fo the user by user_id from table users
-            There should be one table addresses:
-                - And the main column address_id which will be incremented for each new row bigint
-                - It should have user_id wich should be relation to user id in user table and row delete on user delete
-                - Column jsonb for the address
-                - column for the order extra: jsonb
-            The should be table products:
-                - Main column product_id (primary key auto increment)
-                - column for Product images location (supabase storage location)
-                - column for the product description: jsonb (name, brief info, info, and so on)
-                - column for the product extra: jsonb
-                - column for the product group relation to table product_group
-                - column for the product price
-                - column for the product discount or null
-                - column availability: true/false
-                - column created_on
-            The should be table orders:
-                - Main column order_id (primary key auto increment)
-                - It should have user_id wich should be relation to user id in user table.
-                - product_id (the should dbe no relation to table products since the product may be changed in future )
-                - price
-                - discount
-                - short product description jsonb (name, brief info)
-                - order status jsonb
-                - order done: true/false
-                - order date
-                - column for the order extra: jsonb
-                - order_arhived: true/false
-                - order_user_delete: true/false
-            Table discount:
-                - Main column discount_id (primary key auto increment)
-                - discount start date
-                - discount end date
-            Table product_group
-                - Main column group_id (primary key auto increment)
-                - name
-                - group_discount relation to discount_id
+- These instructions define coding standards and architecture rules.  
+  Follow them whenever generating or modifying code — do not treat them as a one-time setup task.
 
+## Technologies
 
-    UI: User Interface and Design rules
-        - Buttons - rounded
-        - Colors - green gama
-        - Fonts - little gothic
-        - Layout
-        - Forms
-        - Navigation bars
-        - Cards
-        - Icons
-        - Spacing
-        - Animations
-        - visual cues
-        - toast notifications
-        - Modern and user-friendly UI design
+- **Frontend:** HTML, CSS, JavaScript and Bootstrap.  
+  Plain JavaScript only — no TypeScript, React, or Vue.
+- **Backend:** Supabase for database, authentication, and storage.
+- **Build tools:** Node.js, npm, Vite
+
+## Architecture
+
+- The app must use modular components and be mobile-friendly/responsive.
+- **Multi-page navigation:** each page lives at its own URL, e.g.  
+  `site_name/user/1`, `site_name/product/1`, `site_name/admin/`, `site_name/home/`
+  - Each page has its own directory containing its own `html`, `css`, and `javascript` files.
+  - Keep files small; avoid duplicating functions across files.
+- Implement routing and navigation between pages.
+- Split layout into reusable components: header, page content, footer.
+- Pages are rendered dynamically via JavaScript.
+
+## Language
+
+- All visible site text must be in **Bulgarian**.
+- All code (variables, functions, comments, file names) must be in **English**.
+
+## Supabase
+
+### Authentication and Authorization
+
+- Use Supabase Auth with JWT tokens.
+- Enforce access control through Row-Level Security (RLS) policies on all tables.
+
+### Database changes
+
+- **Never edit existing migration files.**
+- For every schema change, create a new migration file in `supabase/migrations_applyed/` and apply it (or delete it) only after approval.
+- After each approved migration: query `supabase_migrations.schema_migrations` to get the migration history, then save each new migration file to `supabase/migrations/` and mark it as read-only.
+
+### Database schema
+
+- **users** table:
+  - `user_id` — primary key, bigint, auto-increment
+  - `name`, `second_name`, `lastname` — text columns
+  - `supa_user_uuid` — uuid, stores the UUID from `auth.users`; if the auth user is deleted, this value is kept (not nulled or deleted)
+  - `created_on` — timestamp
+  - `deleted_on` — timestamp, nullable (soft delete)
+  - `boss` — boolean; indicates whether the user has admin/boss privileges
+  - See [Managing User Data](https://supabase.com/docs/guides/auth/managing-user-data) for the relationship pattern between `users` and `auth.users`
+  - Always use `user_id` (not `supa_user_uuid`) as the identifier inside the app
+
+- **Retrieving auth data:**  
+  When data from `auth.users` is needed (e.g. email), look up the user by `user_id` in the `users` table first, then use `supa_user_uuid` to query `auth.users`. Never expose `auth.users` directly to the frontend.
+
+- **addresses** table:
+  - `address_id` — primary key, bigint, auto-increment
+  - `user_id` — bigint, foreign key → `users.user_id`, cascade delete
+  - `address` — jsonb (street, city, postal code, etc.)
+  - `order_extra` — jsonb (extra delivery/order info tied to this address)
+
+- **products** table:
+  - `product_id` — primary key, bigint, auto-increment
+  - `images_location` — text (Supabase Storage path)
+  - `description` — jsonb (fields: `name`, `brief_info`, `info`, etc.)
+  - `extra` — jsonb (any additional product metadata)
+  - `group_id` — bigint, foreign key → `product_group.group_id`
+  - `price` — numeric
+  - `discount` — numeric, nullable
+  - `availability` — boolean
+  - `created_on` — timestamp
+
+- **orders** table:
+  - `order_id` — primary key, bigint, auto-increment
+  - `user_id` — bigint, foreign key → `users.user_id`
+  - `product_id` — bigint, **no foreign key** (product details may change after the order is placed)
+  - `price` — numeric (price at time of order)
+  - `discount` — numeric, nullable (discount at time of order)
+  - `short_description` — jsonb (snapshot of product: `name`, `brief_info`)
+  - `order_status` — jsonb (status history/current status)
+  - `order_done` — boolean
+  - `order_date` — timestamp
+  - `order_extra` — jsonb (extra order info, e.g. notes, delivery preferences)
+  - `order_archived` — boolean
+  - `order_user_delete` — boolean (user has requested deletion/hiding of this order)
+
+- **discount** table:
+  - `discount_id` — primary key, bigint, auto-increment
+  - `start_date` — date/timestamp
+  - `end_date` — date/timestamp
+
+- **product_group** table:
+  - `group_id` — primary key, bigint, auto-increment
+  - `name` — text
+  - `group_discount` — bigint, foreign key → `discount.discount_id`, nullable
+
+## UI: Interface and Design Rules
+
+- **Buttons:** rounded corners
+- **Color scheme:** green gamma (shades of green as primary palette)
+- **Font:** "Little Gothic" (apply via CSS font-family; fall back to a sans-serif)
+- **Layout:** responsive grid/flexbox, mobile-first
+- **Forms:** styled inputs with clear labels and validation feedback
+- **Navigation bars:** responsive, collapsible on mobile
+- **Cards:** rounded, with subtle shadow
+- **Icons:** use a consistent icon library (e.g. Bootstrap Icons)
+- **Spacing:** consistent padding/margin scale
+- **Animations:** subtle transitions (hover, open/close)
+- **Visual cues:** loading states, disabled states, active states
+- **Toast notifications:** non-blocking, auto-dismiss, positioned top-right
+- **General:** modern, clean, and user-friendly UI
