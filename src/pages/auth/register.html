@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Incognito Farm - Регистрация">
+  <title>Регистрация - Incognito Farm</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href="/styles/header.css">
+  <link rel="stylesheet" href="/styles/footer.css">
+  <link rel="stylesheet" href="/pages/auth/auth.css">
+</head>
+<body>
+  <!-- Header -->
+  <div id="header-container"></div>
+
+  <!-- Main Content -->
+  <main class="auth-main py-5">
+    <section class="d-flex align-items-center justify-content-center min-vh-100">
+      <div class="card shadow-lg rounded-4" style="max-width: 450px; width: 100%;">
+        <div class="card-body p-5">
+          <div class="text-center mb-4">
+            <i class="bi bi-person-plus-fill text-success" style="font-size: 40px;"></i>
+            <h1 class="card-title h3 mt-3">Регистрирай се</h1>
+            <p class="text-muted">Създай новия си профил</p>
+          </div>
+
+          <form id="registerForm" class="needs-validation" novalidate>
+            <div class="mb-3">
+              <label for="name" class="form-label">
+                <i class="bi bi-person"></i> Име
+              </label>
+              <input type="text" class="form-control" id="name" name="name" required placeholder="Иван">
+              <div class="invalid-feedback">Името е задължително</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="email" class="form-label">
+                <i class="bi bi-envelope"></i> Email
+              </label>
+              <input type="email" class="form-control" id="email" name="email" required placeholder="your@email.com">
+              <div class="invalid-feedback">Моля, въведете валиден имейл</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="password" class="form-label">
+                <i class="bi bi-lock"></i> Парола
+              </label>
+              <input type="password" class="form-control" id="password" name="password" required placeholder="••••••••">
+              <small class="form-text text-muted d-block mt-1">Минимум 6 символа, включително главна буква и цифра</small>
+              <div class="invalid-feedback">Паролата е задължителна</div>
+            </div>
+
+            <div class="mb-4">
+              <label for="password-confirm" class="form-label">
+                <i class="bi bi-lock-fill"></i> Потвърди паролата
+              </label>
+              <input type="password" class="form-control" id="password-confirm" name="password-confirm" required placeholder="••••••••">
+              <div class="invalid-feedback">Паролите не съвпадат</div>
+            </div>
+
+            <button type="submit" class="btn btn-success btn-lg w-100">
+              <i class="bi bi-check2-circle"></i> Регистрирай се
+            </button>
+          </form>
+
+          <hr class="my-4">
+
+          <div class="text-center">
+            <p class="text-muted mb-0">Вече имаш профил? <a href="/auth/login/" class="text-success text-decoration-none fw-bold">Вход</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <div id="footer-container"></div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Scripts -->
+  <script type="module" src="/pages/auth/register.js"></script>
+</body>
+</html>

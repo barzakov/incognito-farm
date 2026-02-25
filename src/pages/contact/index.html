@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Incognito Farm - Контакти">
+  <title>Контакти - Incognito Farm</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href="/styles/header.css">
+  <link rel="stylesheet" href="/styles/footer.css">
+  <link rel="stylesheet" href="/pages/contact/contact.css">
+</head>
+<body>
+  <!-- Header -->
+  <div id="header-container"></div>
+
+  <!-- Main Content -->
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <h1>Контакти</h1>
+        <p>Свържете се с нас за всякакви въпроси</p>
+      </div>
+    </section>
+
+    <section class="contact-section">
+      <div class="container">
+        <div class="contact-content">
+          <div class="contact-info">
+            <h2>Контактна информация</h2>
+            <div class="info-item">
+              <h3>📍 Адрес</h3>
+              <p>Селище Земеделие, България</p>
+            </div>
+            <div class="info-item">
+              <h3>📞 Телефон</h3>
+              <p>+359 123 456 789</p>
+            </div>
+            <div class="info-item">
+              <h3>📧 Email</h3>
+              <p>info@incognitofarm.bg</p>
+            </div>
+            <div class="info-item">
+              <h3>🕐 Работно време</h3>
+              <p>Понеделник - Петък: 8:00 - 18:00</p>
+              <p>Събота - Неделя: 9:00 - 17:00</p>
+            </div>
+          </div>
+
+          <form class="contact-form" id="contactForm">
+            <h2>Изпратете съобщение</h2>
+            
+            <div class="form-group">
+              <label for="name">Име *</label>
+              <input type="text" id="name" name="name" required>
+            </div>
+
+            <div class="form-group">
+              <label for="email">Email *</label>
+              <input type="email" id="email" name="email" required>
+            </div>
+
+            <div class="form-group">
+              <label for="subject">Тема *</label>
+              <input type="text" id="subject" name="subject" required>
+            </div>
+
+            <div class="form-group">
+              <label for="message">Съобщение *</label>
+              <textarea id="message" name="message" rows="5" required></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Изпрати</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <div id="footer-container"></div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Scripts -->
+  <script type="module" src="/pages/contact/contact.js"></script>
+</body>
+</html>

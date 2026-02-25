@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Incognito Farm - Нашите продукти">
+  <title>Продукти - Incognito Farm</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href="/styles/header.css">
+  <link rel="stylesheet" href="/styles/footer.css">
+  <link rel="stylesheet" href="/pages/products/products.css">
+</head>
+<body>
+  <!-- Header -->
+  <div id="header-container"></div>
+
+  <!-- Main Content -->
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <h1>Нашите продукти</h1>
+        <p class="lead text-muted">Откройте разнообразието на свежи и качествени продукти от нашите ферми</p>
+      </div>
+    </section>
+
+    <section class="products-section py-5">
+      <div class="container">
+        <div class="d-flex justify-content-center gap-2 mb-5 flex-wrap" id="filterButtons">
+          <button class="btn btn-outline-success filter-btn active" data-filter="all">Всички</button>
+          <button class="btn btn-outline-success filter-btn" data-filter="vegetables">Зеленчуци</button>
+          <button class="btn btn-outline-success filter-btn" data-filter="fruits">Плодове</button>
+          <button class="btn btn-outline-success filter-btn" data-filter="grains">Зърнени</button>
+        </div>
+
+        <div class="row g-4" id="productsGrid">
+          <!-- Products will be loaded here -->
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm rounded-4 product-item">
+              <div class="card-body text-center">
+                <div class="product-img fs-1 mb-3">🥕</div>
+                <h5 class="card-title">Моркови</h5>
+                <p class="product-category text-muted">Зеленчуци</p>
+                <p class="product-price fw-bold text-success">4.99 лв./кг</p>
+                <button class="btn btn-success btn-sm">Добави в кошница</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm rounded-4 product-item">
+              <div class="card-body text-center">
+                <div class="product-img fs-1 mb-3">🍅</div>
+                <h5 class="card-title">Домати</h5>
+                <p class="product-category text-muted">Зеленчуци</p>
+                <p class="product-price fw-bold text-success">5.99 лв./кг</p>
+                <button class="btn btn-success btn-sm">Добави в кошница</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm rounded-4 product-item">
+              <div class="card-body text-center">
+                <div class="product-img fs-1 mb-3">🥔</div>
+                <h5 class="card-title">Картофи</h5>
+                <p class="product-category text-muted">Корнеплодове</p>
+                <p class="product-price fw-bold text-success">2.99 лв./кг</p>
+                <button class="btn btn-success btn-sm">Добави в кошница</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm rounded-4 product-item">
+              <div class="card-body text-center">
+                <div class="product-img fs-1 mb-3">🍎</div>
+                <h5 class="card-title">Ябълки</h5>
+                <p class="product-category text-muted">Плодове</p>
+                <p class="product-price fw-bold text-success">3.99 лв./кг</p>
+                <button class="btn btn-success btn-sm">Добави в кошница</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm rounded-4 product-item">
+              <div class="card-body text-center">
+                <div class="product-img fs-1 mb-3">🌽</div>
+                <h5 class="card-title">Царевица</h5>
+                <p class="product-category text-muted">Зърнени</p>
+                <p class="product-price fw-bold text-success">1.99 лв./бр</p>
+                <button class="btn btn-success btn-sm">Добави в кошница</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm rounded-4 product-item">
+              <div class="card-body text-center">
+                <div class="product-img fs-1 mb-3">🥒</div>
+                <h5 class="card-title">Краставици</h5>
+                <p class="product-category text-muted">Зеленчуци</p>
+                <p class="product-price fw-bold text-success">4.49 лв./кг</p>
+                <button class="btn btn-success btn-sm">Добави в кошница</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <div id="footer-container"></div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Scripts -->
+  <script type="module" src="/pages/products/products.js"></script>
+</body>
+</html>

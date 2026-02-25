@@ -1,0 +1,59 @@
+import { supabase, authenticateUser } from '../../lib/supabaseClient.js';
+import { loadComponents } from '../../lib/components.js';
+import { toast } from '../../lib/toast.js';
+import { validateForm, isValidEmail } from '../../lib/formValidation.js';
+
+// Handle login form submission
+function initializeLoginForm() {
+  const form = document.getElementById('loginForm');
+  if (!form) return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Show loading state
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Зареждане...';
+
+    try {
+      // Validate form
+      if (!validateForm(form)) {
+        toast.error('Моля, попълнете всички полета правилно');
+        return;
+      }
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      // Validate email format
+      if (!isValidEmail(email)) {
+        toast.error('Невалиден формат на имейла');
+        return;
+      }
+
+      // Authenticate user
+      const user = await authenticateUser(email, password);
+      
+      if (user) {
+        toast.success('Успешен вход!');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error(error.message || 'Грешка при вход. Проверете своите данни.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    }
+  });
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', () => {
+  loadComponents();
+  initializeLoginForm();
+});
