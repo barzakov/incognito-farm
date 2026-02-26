@@ -76,10 +76,18 @@ async function loadFeaturedProducts() {
       const productName = p.description?.name || 'Продукт';
       const briefInfo = p.description?.brief_info || '';
       const price = p.price != null ? `${Number(p.price).toFixed(2)} лв.` : 'По запитване';
+      
+      let productImage = '🌾';
+      if (p.images_location) {
+        const publicUrl = supabase.storage.from('products').getPublicUrl(p.images_location).data.publicUrl;
+        productImage = `<img src="${publicUrl}" alt="${productName}" style="width: 100%; height: 150px; object-fit: cover;">`;
+      }
 
       return `
         <div class="product-card card">
-          <div class="product-image">🌾</div>
+          <div class="product-image" style="overflow: hidden; height: 150px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 8px;">
+            ${productImage}
+          </div>
           <h3>${productName}</h3>
           <p>${briefInfo}</p>
           <p class="text-success fw-bold" style="margin-top: 0.5rem;">${price}</p>

@@ -70,6 +70,15 @@
   border-bottom-color: var(--primary-lighter);
 }
 
+/* Tab pane display */
+.tab-pane {
+  display: none;
+}
+
+.tab-pane.active {
+  display: block;
+}
+
 /* Action buttons in tables */
 .btn-action {
   padding: 4px 10px;

@@ -40,12 +40,20 @@ async function loadProducts() {
       const briefInfo = p.description?.brief_info || '';
       const price = p.price != null ? `${Number(p.price).toFixed(2)} лв.` : 'По запитване';
       const discountedPrice = p.discount != null ? `${Number(p.discount).toFixed(2)} лв.` : null;
+      
+      let productImage = '🌾';
+      if (p.images_location) {
+        const publicUrl = supabase.storage.from('products').getPublicUrl(p.images_location).data.publicUrl;
+        productImage = `<img src="${publicUrl}" alt="${productName}" style="width: 100%; height: 200px; object-fit: cover;">`;
+      }
 
       return `
         <div class="col-md-6 col-lg-4">
           <div class="card h-100 shadow-sm rounded-4 product-item">
             <div class="card-body text-center">
-              <div class="product-img fs-1 mb-3" data-product-id="${p.product_id}">🌾</div>
+              <div class="product-img fs-1 mb-3" style="overflow: hidden; height: 200px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #f8f9fa;">
+                ${productImage}
+              </div>
               <h5 class="card-title">${productName}</h5>
               <p class="product-category text-muted">${briefInfo}</p>
               <div class="product-pricing">
