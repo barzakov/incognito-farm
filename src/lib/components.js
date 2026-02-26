@@ -1,6 +1,9 @@
 // Shared component loader for header and footer
 // Handles dynamic loading of reusable layout components
 
+import { fetchCurrentUserProfile, logoutUser, onAuthStateChange } from './supabaseClient.js';
+import { toast } from './toast.js';
+
 /**
  * Load header and footer components dynamically
  * Initializes navigation and menu functionality
@@ -29,6 +32,8 @@ export async function loadComponents() {
 
     initializeMobileMenu();
     setActiveNavLink();
+    await updateAuthUI();
+    initializeLogoutButton();
   } catch (error) {
     console.error('Error loading components:', error);
   } finally {
@@ -38,6 +43,68 @@ export async function loadComponents() {
       document.body.classList.remove('layout-loading');
     });
   }
+}
+
+/**
+ * Update header UI based on current auth state.
+ * Shows/hides guest vs user nav sections and admin link.
+ */
+async function updateAuthUI() {
+  const navGuest = document.getElementById('nav-guest');
+  const navUser = document.getElementById('nav-user');
+  const navAdminItem = document.getElementById('nav-admin-item');
+  const navUserDisplay = document.getElementById('nav-user-display');
+
+  if (!navGuest || !navUser) return;
+
+  try {
+    const profile = await fetchCurrentUserProfile();
+
+    if (profile) {
+      // User is logged in
+      navGuest.classList.add('d-none');
+      navUser.classList.remove('d-none');
+      navUser.classList.add('d-flex');
+
+      // Display name
+      const displayName = profile.name || 'Потребител';
+      navUserDisplay.textContent = displayName;
+
+      // Show admin link if boss
+      if (profile.boss && navAdminItem) {
+        navAdminItem.classList.remove('d-none');
+      }
+    } else {
+      // Not logged in – show guest nav
+      navGuest.classList.remove('d-none');
+      navUser.classList.add('d-none');
+      navUser.classList.remove('d-flex');
+      if (navAdminItem) navAdminItem.classList.add('d-none');
+    }
+  } catch (err) {
+    console.error('Error updating auth UI:', err);
+  }
+}
+
+/**
+ * Attach logout handler to the logout button in the header
+ */
+function initializeLogoutButton() {
+  const logoutBtn = document.getElementById('nav-logout-btn');
+  if (!logoutBtn) return;
+
+  logoutBtn.addEventListener('click', async () => {
+    try {
+      await logoutUser();
+      toast.success('Успешно излизане!');
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 800);
+    } catch (err) {
+      console.error('Logout error:', err);
+      toast.error('Грешка при излизане.');
+    }
+  });
 }
 
 /**

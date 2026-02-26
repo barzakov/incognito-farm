@@ -41,24 +41,12 @@
       <div class="container">
         <h2 class="section-title">Избрани продукти</h2>
         <p class="section-subtitle">Открийте нашите най-популярни продукти</p>
-        <div class="grid grid-3">
-          <div class="product-card card">
-            <div class="product-image">🥕</div>
-            <h3>Плодове и зеленчуци</h3>
-            <p>Свежи, органични плодове и зеленчуци, събрани на поръчка за максимална свежест.</p>
-            <a href="/products/" class="btn btn-secondary">Виж всички</a>
-          </div>
-          <div class="product-card card">
-            <div class="product-image">🥔</div>
-            <h3>Картофи и корнеплодове</h3>
-            <p>Наш специалитет -质качествени и здравословни корнеплодове от наши ферми.</p>
-            <a href="/products/" class="btn btn-secondary">Виж всички</a>
-          </div>
-          <div class="product-card card">
-            <div class="product-image">🌽</div>
-            <h3>Зърнени культури</h3>
-            <p>Пшеница, царевица и други зърнени продукти, избрани за най-добро качество.</p>
-            <a href="/products/" class="btn btn-secondary">Виж всички</a>
+        <div class="grid grid-3" id="featuredProductsGrid">
+          <div class="text-center text-muted py-5">
+            <div class="spinner-border text-success spinner-border-sm" role="status">
+              <span class="visually-hidden">Зареждане...</span>
+            </div>
+            <p class="mt-3">Зареждане на продукти...</p>
           </div>
         </div>
       </div>

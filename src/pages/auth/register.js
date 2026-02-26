@@ -24,8 +24,10 @@ function initializeRegisterForm() {
         return;
       }
 
-      const name = document.getElementById('name').value;
-      const email = document.getElementById('email').value;
+      const name = document.getElementById('name').value.trim();
+      const secondName = document.getElementById('second-name').value.trim();
+      const lastname = document.getElementById('lastname').value.trim();
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const passwordConfirm = document.getElementById('password-confirm').value;
 
@@ -48,8 +50,12 @@ function initializeRegisterForm() {
         return;
       }
 
-      // Register user
-      const user = await registerUser(email, password);
+      // Register user with name metadata
+      const user = await registerUser(email, password, {
+        name,
+        second_name: secondName,
+        lastname,
+      });
       
       if (user) {
         toast.success('Успешна регистрация! Проверете вашия email за потвърждение.');

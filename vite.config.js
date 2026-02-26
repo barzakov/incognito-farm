@@ -14,6 +14,8 @@ const pageRewrites = {
   '/auth/register': '/pages/auth/register.html',
   '/auth/register/': '/pages/auth/register.html',
   '/auth/register.html': '/pages/auth/register.html',
+  '/admin': '/pages/admin/index.html',
+  '/admin/': '/pages/admin/index.html',
   '/home': '/pages/home/home.html',
   '/home/': '/pages/home/home.html',
 };
@@ -21,6 +23,7 @@ const pageRewrites = {
 export default defineConfig({
   root: 'src',
   appType: 'mpa',
+  envDir: '..',
   envPrefix: 'VITE_',
   plugins: [
     {
@@ -53,6 +56,7 @@ export default defineConfig({
         contact: resolve(__dirname, 'src/pages/contact/index.html'),
         'auth/login': resolve(__dirname, 'src/pages/auth/login.html'),
         'auth/register': resolve(__dirname, 'src/pages/auth/register.html'),
+        admin: resolve(__dirname, 'src/pages/admin/index.html'),
       },
     },
   },

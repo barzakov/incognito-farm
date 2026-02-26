@@ -12,9 +12,28 @@
         <li class="nav-item"><a href="/products/" class="nav-link">Продукти</a></li>
         <li class="nav-item"><a href="/about/" class="nav-link">За нас</a></li>
         <li class="nav-item"><a href="/contact/" class="nav-link">Контакти</a></li>
-        <li class="nav-auth d-flex gap-2 align-items-center ms-2">
+
+        <!-- Admin link (hidden by default, shown for boss users) -->
+        <li class="nav-item d-none" id="nav-admin-item">
+          <a href="/admin/" class="nav-link text-warning fw-bold">
+            <i class="bi bi-shield-lock"></i> Админ
+          </a>
+        </li>
+
+        <!-- Guest nav (shown when logged out) -->
+        <li class="nav-auth d-flex gap-2 align-items-center ms-2" id="nav-guest">
           <a href="/auth/login/" class="nav-link">Вход</a>
           <a href="/auth/register/" class="btn btn-success btn-sm">Регистрация</a>
+        </li>
+
+        <!-- User nav (shown when logged in, hidden by default) -->
+        <li class="nav-auth d-none align-items-center ms-2 gap-2" id="nav-user">
+          <span class="nav-link disabled" id="nav-user-name">
+            <i class="bi bi-person-circle"></i> <span id="nav-user-display"></span>
+          </span>
+          <button class="btn btn-outline-danger btn-sm" id="nav-logout-btn" type="button">
+            <i class="bi bi-box-arrow-right"></i> Изход
+          </button>
         </li>
       </ul>
     </div>

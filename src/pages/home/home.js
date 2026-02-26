@@ -48,7 +48,58 @@ function updateAuthUI(user) {
 }
 
 // Initialize page
+async function loadFeaturedProducts() {
+  const grid = document.getElementById('featuredProductsGrid');
+  if (!grid) return;
+
+  try {
+    const { data: products, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('availability', true)
+      .limit(3)
+      .order('product_id', { ascending: false });
+
+    if (error) throw error;
+
+    if (!products || products.length === 0) {
+      grid.innerHTML = `
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-inbox"></i>
+          <p class="mt-3">Няма налични продукти</p>
+        </div>
+      `;
+      return;
+    }
+
+    grid.innerHTML = products.map((p) => {
+      const productName = p.description?.name || 'Продукт';
+      const briefInfo = p.description?.brief_info || '';
+      const price = p.price != null ? `${Number(p.price).toFixed(2)} лв.` : 'По запитване';
+
+      return `
+        <div class="product-card card">
+          <div class="product-image">🌾</div>
+          <h3>${productName}</h3>
+          <p>${briefInfo}</p>
+          <p class="text-success fw-bold" style="margin-top: 0.5rem;">${price}</p>
+          <a href="/products/" class="btn btn-secondary">Виж всички</a>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Error loading featured products:', err);
+    grid.innerHTML = `
+      <div class="text-center text-danger py-5">
+        <i class="bi bi-exclamation-circle"></i>
+        <p class="mt-3">Грешка при зареждане</p>
+      </div>
+    `;
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadComponents();
   checkAuthStatus();
+  loadFeaturedProducts();
 });

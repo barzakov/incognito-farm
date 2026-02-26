@@ -1,4 +1,4 @@
-import { supabase, authenticateUser } from '../../lib/supabaseClient.js';
+import { supabase, authenticateUser, fetchCurrentUserProfile } from '../../lib/supabaseClient.js';
 import { loadComponents } from '../../lib/components.js';
 import { toast } from '../../lib/toast.js';
 import { validateForm, isValidEmail } from '../../lib/formValidation.js';
@@ -24,7 +24,7 @@ function initializeLoginForm() {
         return;
       }
 
-      const email = document.getElementById('email').value;
+      const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
 
       // Validate email format
@@ -34,12 +34,17 @@ function initializeLoginForm() {
       }
 
       // Authenticate user
-      const user = await authenticateUser(email, password);
+      const authData = await authenticateUser(email, password);
       
-      if (user) {
+      if (authData) {
         toast.success('Успешен вход!');
+
+        // Fetch profile to check boss status
+        const profile = await fetchCurrentUserProfile();
+        const redirectTo = profile?.boss ? '/admin/' : '/';
+
         setTimeout(() => {
-          window.location.href = '/';
+          window.location.href = redirectTo;
         }, 1000);
       }
     } catch (error) {

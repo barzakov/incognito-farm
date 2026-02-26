@@ -1,0 +1,86 @@
+/* Admin Panel Styles */
+
+.admin-main {
+  flex: 1;
+  background-color: var(--neutral-light);
+  min-height: calc(100vh - 160px);
+}
+
+/* Stat icon container */
+.stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+}
+
+/* Table tweaks */
+.admin-main .table th {
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  color: var(--neutral-dark);
+  border-bottom-width: 2px;
+}
+
+.admin-main .table td {
+  font-size: var(--font-size-sm);
+  vertical-align: middle;
+}
+
+/* Badge overrides for roles */
+.badge-boss {
+  background: linear-gradient(135deg, #ff9800, #f57c00) !important;
+  color: #fff;
+}
+
+.badge-user {
+  background: var(--primary-lightest) !important;
+  color: var(--primary-dark);
+}
+
+.badge-active {
+  background: var(--accent-success) !important;
+  color: #fff;
+}
+
+.badge-deleted {
+  background: var(--accent-error) !important;
+  color: #fff;
+}
+
+/* Nav tabs override */
+.admin-main .nav-tabs .nav-link {
+  color: var(--neutral-dark);
+  font-weight: 500;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 10px 20px;
+}
+
+.admin-main .nav-tabs .nav-link.active {
+  color: var(--primary-main);
+  border-bottom-color: var(--primary-main);
+  background: transparent;
+}
+
+.admin-main .nav-tabs .nav-link:hover {
+  color: var(--primary-main);
+  border-bottom-color: var(--primary-lighter);
+}
+
+/* Action buttons in tables */
+.btn-action {
+  padding: 4px 10px;
+  font-size: 13px;
+  border-radius: var(--radius-full);
+}
+
+/* Responsive card stats on mobile */
+@media (max-width: 768px) {
+  .stat-icon {
+    width: 44px;
+    height: 44px;
+  }
+}
