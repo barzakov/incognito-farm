@@ -33,6 +33,7 @@ export async function loadComponents() {
     initializeMobileMenu();
     setActiveNavLink();
     await updateAuthUI();
+    updateCartBadge();
     initializeLogoutButton();
   } catch (error) {
     console.error('Error loading components:', error);
@@ -42,6 +43,30 @@ export async function loadComponents() {
     requestAnimationFrame(() => {
       document.body.classList.remove('layout-loading');
     });
+  }
+}
+
+/**
+ * Update cart badge with current cart count
+ */
+function updateCartBadge() {
+  const CART_STORAGE_KEY = 'incognito_farm_cart';
+  try {
+    const cart = localStorage.getItem(CART_STORAGE_KEY);
+    const cartItems = cart ? JSON.parse(cart) : [];
+    const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+    const badge = document.getElementById('cart-badge');
+    
+    if (badge) {
+      if (totalItems > 0) {
+        badge.textContent = totalItems;
+        badge.classList.remove('d-none');
+      } else {
+        badge.classList.add('d-none');
+      }
+    }
+  } catch (error) {
+    console.error('Error updating cart badge:', error);
   }
 }
 
@@ -63,6 +88,7 @@ async function updateAuthUI() {
     if (profile) {
       // User is logged in
       navGuest.classList.add('d-none');
+      navGuest.classList.remove('d-flex');
       navUser.classList.remove('d-none');
       navUser.classList.add('d-flex');
 
@@ -77,6 +103,7 @@ async function updateAuthUI() {
     } else {
       // Not logged in – show guest nav
       navGuest.classList.remove('d-none');
+      navGuest.classList.add('d-flex');
       navUser.classList.add('d-none');
       navUser.classList.remove('d-flex');
       if (navAdminItem) navAdminItem.classList.add('d-none');

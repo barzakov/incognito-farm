@@ -85,10 +85,12 @@
 .nav-auth {
   gap: 15px !important;
   margin-left: 20px;
+  flex-wrap: nowrap;
 }
 
 .nav-auth .nav-link {
   padding: 8px 0 !important;
+  white-space: nowrap;
 }
 
 .btn-success {

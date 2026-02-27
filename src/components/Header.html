@@ -12,6 +12,14 @@
         <li class="nav-item"><a href="/products/" class="nav-link">Продукти</a></li>
         <li class="nav-item"><a href="/about/" class="nav-link">За нас</a></li>
         <li class="nav-item"><a href="/contact/" class="nav-link">Контакти</a></li>
+        
+        <!-- Cart link -->
+        <li class="nav-item">
+          <a href="/cart/" class="nav-link position-relative">
+            <i class="bi bi-cart4"></i> Каруца
+            <span class="badge bg-success rounded-pill position-absolute top-0 start-100 translate-middle d-none" id="cart-badge" style="font-size: 0.65rem;">0</span>
+          </a>
+        </li>
 
         <!-- Admin link (hidden by default, shown for boss users) -->
         <li class="nav-item d-none" id="nav-admin-item">
@@ -28,9 +36,9 @@
 
         <!-- User nav (shown when logged in, hidden by default) -->
         <li class="nav-auth d-none align-items-center ms-2 gap-2" id="nav-user">
-          <span class="nav-link disabled" id="nav-user-name">
+          <a href="/user/" class="nav-link" id="nav-user-name">
             <i class="bi bi-person-circle"></i> <span id="nav-user-display"></span>
-          </span>
+          </a>
           <button class="btn btn-outline-danger btn-sm" id="nav-logout-btn" type="button">
             <i class="bi bi-box-arrow-right"></i> Изход
           </button>

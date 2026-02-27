@@ -8,6 +8,8 @@ const pageRewrites = {
   '/about/': '/pages/about/index.html',
   '/contact': '/pages/contact/index.html',
   '/contact/': '/pages/contact/index.html',
+  '/cart': '/pages/cart/index.html',
+  '/cart/': '/pages/cart/index.html',
   '/auth/login': '/pages/auth/login.html',
   '/auth/login/': '/pages/auth/login.html',
   '/auth/login.html': '/pages/auth/login.html',
@@ -18,6 +20,8 @@ const pageRewrites = {
   '/admin/': '/pages/admin/index.html',
   '/home': '/pages/home/home.html',
   '/home/': '/pages/home/home.html',
+  '/user': '/pages/user/index.html',
+  '/user/': '/pages/user/index.html',
 };
 
 export default defineConfig({
@@ -52,11 +56,13 @@ export default defineConfig({
         main: resolve(__dirname, 'src/index.html'),
         home: resolve(__dirname, 'src/pages/home/home.html'),
         products: resolve(__dirname, 'src/pages/products/index.html'),
+        cart: resolve(__dirname, 'src/pages/cart/index.html'),
         about: resolve(__dirname, 'src/pages/about/index.html'),
         contact: resolve(__dirname, 'src/pages/contact/index.html'),
         'auth/login': resolve(__dirname, 'src/pages/auth/login.html'),
         'auth/register': resolve(__dirname, 'src/pages/auth/register.html'),
         admin: resolve(__dirname, 'src/pages/admin/index.html'),
+        user: resolve(__dirname, 'src/pages/user/index.html'),
       },
     },
   },
