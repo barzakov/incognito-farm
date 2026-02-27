@@ -68,6 +68,16 @@ async function loadGroupsIntoDropdown() {
   }
 }
 
+function formatDateForBulgarianUsers(dateValue) {
+  if (!dateValue || typeof dateValue !== 'string') return '–';
+
+  const normalizedValue = dateValue.includes('T') ? dateValue : `${dateValue}T00:00:00`;
+  const parsedDate = new Date(normalizedValue);
+
+  if (Number.isNaN(parsedDate.getTime())) return dateValue;
+  return parsedDate.toLocaleDateString('bg-BG');
+}
+
 // ─── Users table ─────────────────────────────────────────────
 
 async function loadUsers() {
@@ -212,7 +222,7 @@ async function loadProducts() {
     if (error) throw error;
 
     if (!products || products.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Няма продукти</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Няма продукти</td></tr>';
       return;
     }
 
@@ -223,6 +233,7 @@ async function loadProducts() {
       const price = p.price != null ? `${Number(p.price).toFixed(2)} лв.` : '–';
       const discount = p.discount != null ? `${Number(p.discount).toFixed(2)} лв.` : '–';
       const productName = p.description?.name || '–';
+      const expireDate = formatDateForBulgarianUsers(p.extra?.expire || null);
       
       let imageThumb = '🌾';
       if (p.images_location) {
@@ -238,6 +249,7 @@ async function loadProducts() {
           <td>${price}</td>
           <td>${discount}</td>
           <td>${availabilityBadge}</td>
+          <td>${expireDate}</td>
           <td>
             <button class="btn btn-action btn-outline-primary btn-sm" data-product-id="${p.product_id}" data-action="edit-product" data-product-data='${JSON.stringify(p)}'>
               <i class="bi bi-pencil"></i>
@@ -253,7 +265,7 @@ async function loadProducts() {
     attachProductActions();
   } catch (err) {
     console.error('Error loading products:', err);
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Грешка при зареждане</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Грешка при зареждане</td></tr>';
   }
 }
 
@@ -295,6 +307,27 @@ async function showEditProductModal(productData) {
   document.getElementById('edit-product-discount').value = productData.discount ? String(productData.discount) : '';
   document.getElementById('edit-product-availability').value = productData.availability ? 'true' : 'false';
   document.getElementById('edit-product-group').value = productData.group_id ? String(productData.group_id) : '';
+
+  // Populate extra fields (country, size, expire)
+  document.getElementById('edit-product-country').value = productData.extra?.country || '';
+  document.getElementById('edit-product-expire').value = productData.extra?.expire || '';
+  
+  // Populate size fields
+  if (productData.extra?.size) {
+    const sizeData = productData.extra.size;
+    const activeUnit = sizeData.active;
+    
+    if (activeUnit === 'грамове' && sizeData.грамове !== null) {
+      document.getElementById('edit-product-size-grams').checked = true;
+      document.getElementById('edit-product-size-grams-value').value = sizeData.грамове;
+    } else if (activeUnit === 'килограми' && sizeData.килограми !== null) {
+      document.getElementById('edit-product-size-kg').checked = true;
+      document.getElementById('edit-product-size-kg-value').value = sizeData.килограми;
+    } else if (activeUnit === 'бройки' && sizeData.бройки !== null) {
+      document.getElementById('edit-product-size-pieces').checked = true;
+      document.getElementById('edit-product-size-pieces-value').value = sizeData.бройки;
+    }
+  }
 
   // Show current image if exists
   const previewContainer = document.getElementById('edit-product-image-preview');
@@ -362,6 +395,42 @@ async function handleEditProductSubmit(productId, form) {
       return;
     }
 
+    // Collect extra data (country, size, expire)
+    const country = document.getElementById('edit-product-country').value.trim();
+    const expire = document.getElementById('edit-product-expire').value;
+    
+    // Determine which size unit is selected and get its value
+    let sizeData = {
+      грамове: null,
+      килограми: null,
+      бройки: null,
+      active: null
+    };
+    
+    const gramsRadio = document.getElementById('edit-product-size-grams');
+    const kgRadio = document.getElementById('edit-product-size-kg');
+    const piecesRadio = document.getElementById('edit-product-size-pieces');
+    
+    if (gramsRadio.checked) {
+      const value = document.getElementById('edit-product-size-grams-value').value;
+      sizeData.грамове = value ? parseFloat(value) : null;
+      sizeData.active = 'грамове';
+    } else if (kgRadio.checked) {
+      const value = document.getElementById('edit-product-size-kg-value').value;
+      sizeData.килограми = value ? parseFloat(value) : null;
+      sizeData.active = 'килограми';
+    } else if (piecesRadio.checked) {
+      const value = document.getElementById('edit-product-size-pieces-value').value;
+      sizeData.бройки = value ? parseInt(value) : null;
+      sizeData.active = 'бройки';
+    }
+
+    const extra = {
+      country: country || null,
+      size: sizeData,
+      expire: expire || null
+    };
+
     const updateData = {
       description: {
         name,
@@ -372,6 +441,7 @@ async function handleEditProductSubmit(productId, form) {
       discount,
       availability,
       group_id: groupId,
+      extra,
     };
 
     // Handle image upload if new file selected
@@ -425,12 +495,43 @@ function showDeleteProductModal(productId) {
 
   newBtn.addEventListener('click', async () => {
     try {
-      const { error } = await supabase
+      // Fetch the product to get images_location
+      const { data: product, error: fetchError } = await supabase
+        .from('products')
+        .select('images_location')
+        .eq('product_id', productId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Delete storage directory if images exist
+      if (product && product.images_location) {
+        const filePath = product.images_location;
+        const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
+
+        const { data: files, error: listError } = await supabase.storage
+          .from('products')
+          .list(folderPath);
+
+        if (!listError && files && files.length > 0) {
+          const filesToDelete = files.map((f) => `${folderPath}/${f.name}`);
+
+          const { error: deleteError } = await supabase.storage
+            .from('products')
+            .remove(filesToDelete);
+
+          if (deleteError) throw deleteError;
+        }
+      }
+
+      // Delete product record
+      const { error: deleteError } = await supabase
         .from('products')
         .delete()
         .eq('product_id', productId);
 
-      if (error) throw error;
+      if (deleteError) throw deleteError;
+
       toast.success('Продуктът е изтрит.');
       modal.hide();
       await loadProducts();
@@ -485,6 +586,42 @@ function initializeProductForm() {
       const groupId = document.getElementById('product-group').value ? parseInt(document.getElementById('product-group').value) : null;
       const imageFile = document.getElementById('product-image').files[0];
 
+      // Collect extra data (country, size, expire)
+      const country = document.getElementById('product-country').value.trim();
+      const expire = document.getElementById('product-expire').value;
+      
+      // Determine which size unit is selected and get its value
+      let sizeData = {
+        грамове: null,
+        килограми: null,
+        бройки: null,
+        active: null
+      };
+      
+      const gramsRadio = document.getElementById('product-size-grams');
+      const kgRadio = document.getElementById('product-size-kg');
+      const piecesRadio = document.getElementById('product-size-pieces');
+      
+      if (gramsRadio.checked) {
+        const value = document.getElementById('product-size-grams-value').value;
+        sizeData.грамове = value ? parseFloat(value) : null;
+        sizeData.active = 'грамове';
+      } else if (kgRadio.checked) {
+        const value = document.getElementById('product-size-kg-value').value;
+        sizeData.килограми = value ? parseFloat(value) : null;
+        sizeData.active = 'килограми';
+      } else if (piecesRadio.checked) {
+        const value = document.getElementById('product-size-pieces-value').value;
+        sizeData.бройки = value ? parseInt(value) : null;
+        sizeData.active = 'бройки';
+      }
+
+      const extra = {
+        country: country || null,
+        size: sizeData,
+        expire: expire || null
+      };
+
       // Insert product first to get the ID
       const { data: insertedProduct, error: insertError } = await supabase
         .from('products')
@@ -499,6 +636,7 @@ function initializeProductForm() {
             discount,
             availability,
             group_id: groupId,
+            extra,
           },
         ])
         .select();
@@ -1031,6 +1169,31 @@ function initializeTabListeners() {
   }
 }
 
+function initializeForceExpiryCheckButton() {
+  const forceCheckBtn = document.getElementById('force-expiry-check-btn');
+  if (!forceCheckBtn) return;
+
+  forceCheckBtn.addEventListener('click', async () => {
+    const originalHTML = forceCheckBtn.innerHTML;
+    forceCheckBtn.disabled = true;
+    forceCheckBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Проверка...';
+
+    try {
+      const { error } = await supabase.rpc('update_expired_products');
+      if (error) throw error;
+
+      toast.success('Проверката за изтекли продукти завърши успешно.');
+      await Promise.all([loadProducts(), loadStats()]);
+    } catch (err) {
+      console.error('Force expiry check error:', err);
+      toast.error('Грешка при ръчна проверка на изтеклите продукти.');
+    } finally {
+      forceCheckBtn.disabled = false;
+      forceCheckBtn.innerHTML = originalHTML;
+    }
+  });
+}
+
 // ─── Page init ───────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1040,7 +1203,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!profile) return;
 
   initializeTabListeners();
-  initializeProductForm();
+  initializeForceExpiryCheckButton();
   initializeGroupForm();
   handleEditGroupSubmit();
   await Promise.all([loadStats(), loadUsers(), loadGroupsIntoDropdown()]);

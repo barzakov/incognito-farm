@@ -33,10 +33,10 @@
     <section class="products-section py-5">
       <div class="container">
         <div class="d-flex justify-content-center gap-2 mb-5 flex-wrap" id="filterButtons">
-          <button class="btn btn-outline-success filter-btn active" data-filter="all">Всички</button>
-          <button class="btn btn-outline-success filter-btn" data-filter="vegetables">Зеленчуци</button>
-          <button class="btn btn-outline-success filter-btn" data-filter="fruits">Плодове</button>
-          <button class="btn btn-outline-success filter-btn" data-filter="grains">Зърнени</button>
+          <!-- Filter buttons will be loaded from database -->
+          <div class="spinner-border text-success" role="status">
+            <span class="visually-hidden">Зареждане...</span>
+          </div>
         </div>
 
         <div class="row g-4" id="productsGrid">
@@ -51,6 +51,46 @@
       </div>
     </section>
   </main>
+
+  <!-- Product Detail Modal -->
+  <div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl product-modal-dialog">
+      <div class="modal-content">
+        <button type="button" class="btn-close position-absolute" data-bs-dismiss="modal" aria-label="Close" style="top: 10px; right: 10px; z-index: 10;"></button>
+        <div class="modal-body p-0">
+          <div class="product-detail-layout">
+            <section class="product-detail-main">
+              <h4 id="productDetailName" class="product-detail-name mb-3">Продукт</h4>
+              <div id="productDetailImage" class="product-detail-image">
+                🌾
+              </div>
+              <div class="product-detail-full-info mt-4">
+                <h6>Описание</h6>
+                <p id="productDetailFullInfo" class="mb-0">Няма описание</p>
+              </div>
+            </section>
+
+            <aside class="product-detail-side">
+              <div class="product-detail-short-info mb-4">
+                <h6>Кратка информация</h6>
+                <p id="productDetailShortInfo" class="mb-0">Няма кратка информация</p>
+              </div>
+
+              <div id="productDetailPricing" class="product-detail-pricing mb-4"></div>
+
+              <div id="productDetailExtra" class="product-detail-extra mb-4"></div>
+
+              <div class="mt-auto pt-3 border-top">
+                <button type="button" class="btn btn-success w-100 d-flex align-items-center justify-content-center gap-2" id="modalAddToCartBtn">
+                  <i class="bi bi-cart4"></i> <span>Добави в каруца</span>
+                </button>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Footer -->
   <div id="footer-container"></div>
