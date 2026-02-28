@@ -1,0 +1,420 @@
+<svg viewBox="0 0 1100 650" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="#404040" flood-opacity="0.25"/>
+    </filter>
+    <filter id="groundShadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8"/>
+    </filter>
+    <filter id="furTexture">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" seed="3" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0.3" y2="1">
+      <stop offset="0%" stop-color="#b5b0a8"/>
+      <stop offset="40%" stop-color="#9e9890"/>
+      <stop offset="100%" stop-color="#858078"/>
+    </linearGradient>
+    <linearGradient id="bellyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a09a92"/>
+      <stop offset="100%" stop-color="#c8c2b8"/>
+    </linearGradient>
+    <linearGradient id="woodGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c48a45"/>
+      <stop offset="20%" stop-color="#b07a3d"/>
+      <stop offset="60%" stop-color="#956530"/>
+      <stop offset="100%" stop-color="#7d532a"/>
+    </linearGradient>
+    <linearGradient id="woodSide" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#956530"/>
+      <stop offset="100%" stop-color="#5a3a1a"/>
+    </linearGradient>
+    <radialGradient id="wheelWood" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#d09050"/>
+      <stop offset="50%" stop-color="#b07838"/>
+      <stop offset="100%" stop-color="#7a4a22"/>
+    </radialGradient>
+    <linearGradient id="headGrad" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#bab4ac"/>
+      <stop offset="50%" stop-color="#a8a29a"/>
+      <stop offset="100%" stop-color="#908a82"/>
+    </linearGradient>
+    <linearGradient id="legGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a09a92"/>
+      <stop offset="70%" stop-color="#8a847c"/>
+      <stop offset="100%" stop-color="#4a4440"/>
+    </linearGradient>
+    <linearGradient id="legGradFar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8a847c"/>
+      <stop offset="70%" stop-color="#7a746c"/>
+      <stop offset="100%" stop-color="#3a3430"/>
+    </linearGradient>
+    <radialGradient id="muzzleGrad" cx="40%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#e0d8c8"/>
+      <stop offset="100%" stop-color="#c0b8a0"/>
+    </radialGradient>
+    <radialGradient id="eyeGrad" cx="40%" cy="35%" r="50%">
+      <stop offset="0%" stop-color="#3a2a1a"/>
+      <stop offset="100%" stop-color="#1a0a00"/>
+    </radialGradient>
+    <linearGradient id="metalGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#888"/>
+      <stop offset="50%" stop-color="#666"/>
+      <stop offset="100%" stop-color="#444"/>
+    </linearGradient>
+    <radialGradient id="tireGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="80%" stop-color="#2a2a2a"/>
+      <stop offset="100%" stop-color="#1a1a1a"/>
+    </radialGradient>
+    <radialGradient id="hubGrad" cx="40%" cy="35%" r="55%">
+      <stop offset="0%" stop-color="#888"/>
+      <stop offset="100%" stop-color="#444"/>
+    </radialGradient>
+    <linearGradient id="leatherGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8a6040"/>
+      <stop offset="100%" stop-color="#5a3820"/>
+    </linearGradient>
+    <linearGradient id="groundGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d4cec4"/>
+      <stop offset="100%" stop-color="#c8c2b8"/>
+    </linearGradient>
+  </defs>
+
+
+  <!-- ===== DONKEY ===== -->
+  <g transform="translate(95, 130)" filter="url(#shadow)">
+
+    <!-- Tail -->
+    <path d="M305 110 Q330 95 342 115 Q350 135 345 160 Q340 180 330 190"
+          fill="none" stroke="#6a6460" stroke-width="8" stroke-linecap="round"/>
+    <path d="M330 190 Q325 200 318 208 Q312 202 320 192 Z" fill="#5a5450"/>
+    <path d="M342 115 Q348 130 345 155 Q342 172 335 185"
+          fill="none" stroke="#7a7470" stroke-width="4" stroke-linecap="round"/>
+    <path d="M318 208 Q310 218 305 222 Q300 218 308 210 Z" fill="#4a4440"/>
+    <path d="M318 208 Q322 218 318 225 Q314 220 316 212 Z" fill="#4a4440"/>
+
+    <!-- Back legs (far side, darker) -->
+    <path d="M258 195 Q253 230 255 265 Q254 285 256 300 L259 312 Q264 320 274 320 L279 316 Q281 310 279 302 L275 292 Q272 280 274 265 Q277 230 282 195"
+          fill="url(#legGradFar)" stroke="#6a6460" stroke-width="1"/>
+    <path d="M259 312 Q264 325 274 325 L279 321 Q281 315 279 308 Z" fill="#3a3430" stroke="#2a2420" stroke-width="0.5"/>
+
+    <!-- Front legs (far side, darker) -->
+    <path d="M123 190 Q118 230 120 265 Q119 285 121 300 L124 312 Q129 320 137 320 L142 316 Q144 310 142 302 L138 292 Q135 280 137 265 Q140 230 142 190"
+          fill="url(#legGradFar)" stroke="#6a6460" stroke-width="1"/>
+    <path d="M124 312 Q129 325 137 325 L142 321 Q144 315 142 308 Z" fill="#3a3430" stroke="#2a2420" stroke-width="0.5"/>
+
+    <!-- BODY -->
+    <path d="M100 100 Q88 92 92 118 Q92 148 104 180 Q110 202 142 212
+             Q200 228 272 212 Q312 196 322 168 Q332 138 322 108
+             Q316 88 290 82 Q240 72 180 76 Q128 80 100 100 Z"
+          fill="url(#bodyGrad)" stroke="#7a756d" stroke-width="1.2"/>
+
+    <path d="M130 185 Q170 200 220 205 Q260 202 280 195
+             Q270 210 220 218 Q160 215 130 200 Z"
+          fill="url(#bellyGrad)" opacity="0.5"/>
+
+    <g opacity="0.15" stroke="#5a5550" stroke-width="0.8" fill="none">
+      <path d="M120 110 Q140 108 160 110"/>
+      <path d="M170 95 Q200 92 230 95"/>
+      <path d="M250 100 Q270 98 290 102"/>
+      <path d="M130 130 Q160 127 190 130"/>
+      <path d="M200 125 Q230 122 260 126"/>
+      <path d="M140 155 Q170 152 200 155"/>
+      <path d="M210 150 Q240 147 270 150"/>
+      <path d="M150 180 Q180 177 210 180"/>
+      <path d="M220 175 Q245 173 265 176"/>
+    </g>
+
+    <path d="M130 88 Q180 76 260 80 Q300 83 315 93 Q285 78 225 75 Q165 76 130 88 Z"
+          fill="#cac4bc" opacity="0.45"/>
+
+    <path d="M130 120 Q145 115 155 130 Q160 145 150 165"
+          fill="none" stroke="#8a847c" stroke-width="1.5" opacity="0.3"/>
+    <path d="M275 115 Q290 120 295 140 Q298 160 288 180"
+          fill="none" stroke="#8a847c" stroke-width="1.5" opacity="0.3"/>
+
+    <!-- Front legs (near side) -->
+    <path d="M133 190 Q128 230 130 265 Q129 285 131 300 L135 315 Q140 323 149 323 L155 318 Q157 312 155 304 L151 294 Q148 282 149 265 Q152 230 155 190"
+          fill="url(#legGrad)" stroke="#7a756d" stroke-width="1"/>
+    <ellipse cx="141" cy="255" rx="8" ry="5" fill="#96908a" opacity="0.3"/>
+    <path d="M135 315 Q140 328 149 328 L155 323 Q157 317 155 310 Z" fill="#3a3430" stroke="#2a2420" stroke-width="0.8"/>
+    <path d="M140 318 Q144 322 148 320" fill="none" stroke="#555" stroke-width="0.8"/>
+
+    <!-- Back legs (near side) -->
+    <path d="M268 195 Q263 230 265 265 Q264 285 267 300 L271 315 Q276 323 285 323 L291 318 Q293 312 291 304 L287 294 Q284 282 285 265 Q288 230 293 195"
+          fill="url(#legGrad)" stroke="#7a756d" stroke-width="1"/>
+    <ellipse cx="277" cy="255" rx="8" ry="5" fill="#96908a" opacity="0.3"/>
+    <path d="M271 315 Q276 328 285 328 L291 323 Q293 317 291 310 Z" fill="#3a3430" stroke="#2a2420" stroke-width="0.8"/>
+    <path d="M276 318 Q280 322 284 320" fill="none" stroke="#555" stroke-width="0.8"/>
+
+    <!-- Dorsal stripe -->
+    <path d="M125 92 Q200 82 310 96" fill="none" stroke="#6a6460" stroke-width="4" opacity="0.25"/>
+    <path d="M128 90 Q200 80 308 94" fill="none" stroke="#5a5450" stroke-width="2" opacity="0.2"/>
+
+    <!-- Cross marking on shoulders -->
+    <path d="M155 88 Q160 110 165 140" fill="none" stroke="#6a6460" stroke-width="4" opacity="0.2"/>
+
+    <!-- NECK - longer and more angular to match new head -->
+    <path d="M100 100 Q78 72 68 48 Q58 28 62 10 Q68 -2 82 0 Q100 8 112 32 Q124 60 126 88 Q128 96 126 100"
+          fill="url(#bodyGrad)" stroke="#7a756d" stroke-width="1.2"/>
+
+    <!-- Neck fur lines -->
+    <g opacity="0.12" stroke="#5a5550" stroke-width="0.7" fill="none">
+      <path d="M78 25 Q88 22 98 26"/>
+      <path d="M74 42 Q84 39 94 43"/>
+      <path d="M78 58 Q88 55 98 59"/>
+      <path d="M84 74 Q94 71 104 75"/>
+    </g>
+
+    <!-- Mane - repositioned for new neck -->
+    <path d="M66 5 Q58 -8 66 -14 Q74 -6 70 8" fill="#4a4440" stroke="#3a3430" stroke-width="0.5"/>
+    <path d="M70 12 Q62 0 70 -6 Q78 2 74 14" fill="#4a4440" stroke="#3a3430" stroke-width="0.5"/>
+    <path d="M74 20 Q66 8 74 2 Q82 10 78 22" fill="#504a44" stroke="#3a3430" stroke-width="0.5"/>
+    <path d="M79 30 Q71 18 79 12 Q87 20 83 32" fill="#504a44" stroke="#3a3430" stroke-width="0.5"/>
+    <path d="M84 40 Q76 28 84 22 Q92 30 88 42" fill="#555048" stroke="#3a3430" stroke-width="0.5"/>
+    <path d="M90 50 Q82 38 90 32 Q98 40 94 52" fill="#555048" stroke="#3a3430" stroke-width="0.5"/>
+    <path d="M96 60 Q88 48 96 42 Q104 50 100 62" fill="#5a5550" stroke="#3a3430" stroke-width="0.5"/>
+    <path d="M67 1 Q62 -10 65 -16" fill="none" stroke="#4a4440" stroke-width="2" opacity="0.6"/>
+    <path d="M94 56 Q89 46 93 40" fill="none" stroke="#555048" stroke-width="2" opacity="0.5"/>
+
+    <!-- HEAD - elongated, angular donkey shape -->
+    <!-- The head is now longer with a flat forehead, straight nasal bridge, and pronounced muzzle -->
+    <path d="M28 -2 Q14 0 4 14 Q-6 30 -10 50 Q-14 68 -12 82
+             Q-8 96 2 108 Q14 120 28 126 Q42 130 54 126
+             Q62 122 68 112 Q74 98 76 78 Q78 58 76 38
+             Q74 18 68 6 Q62 -4 50 -6 Q38 -6 28 -2 Z"
+          fill="url(#headGrad)" stroke="#7a756d" stroke-width="1.2"/>
+
+    <!-- Flat forehead area - characteristic donkey feature -->
+    <path d="M30 0 Q42 -2 56 2 Q66 6 70 16 Q68 8 56 2 Q42 -2 30 0 Z"
+          fill="#c5c0b8" opacity="0.3"/>
+
+    <!-- Straight nasal bridge - bony ridge -->
+    <path d="M32 10 Q30 40 26 70 Q24 85 20 100"
+          fill="none" stroke="#96908a" stroke-width="2" opacity="0.25"/>
+
+    <!-- Cheek definition - angular jaw -->
+    <path d="M68 50 Q72 65 70 82 Q66 98 58 112"
+          fill="none" stroke="#8a847c" stroke-width="1.5" opacity="0.25"/>
+
+    <!-- Head fur texture -->
+    <g opacity="0.1" stroke="#5a5550" stroke-width="0.6" fill="none">
+      <path d="M20 20 Q35 17 50 20"/>
+      <path d="M15 40 Q30 37 48 40"/>
+      <path d="M10 60 Q25 57 42 60"/>
+      <path d="M5 80 Q20 77 38 80"/>
+    </g>
+
+    <!-- Lighter area around eye - positioned higher on long head -->
+    <ellipse cx="52" cy="30" rx="14" ry="11" fill="#c0bab2" opacity="0.35"/>
+
+    <!-- Muzzle - larger, more squared for donkey -->
+    <path d="M-12 82 Q-18 94 -14 108 Q-8 122 8 130 Q22 136 38 132 Q48 128 54 122
+             Q46 126 30 128 Q14 126 4 118 Q-6 108 -10 94 Q-12 86 -12 82 Z"
+          fill="url(#muzzleGrad)" stroke="#b0a890" stroke-width="0.8"/>
+
+    <!-- Muzzle chin area - squared off -->
+    <path d="M-4 118 Q8 128 24 130 Q36 128 44 124"
+          fill="#d8d0c0" opacity="0.25" stroke="none"/>
+
+    <!-- Muzzle whisker dots -->
+    <circle cx="4" cy="112" r="0.8" fill="#7a7060"/>
+    <circle cx="8" cy="116" r="0.8" fill="#7a7060"/>
+    <circle cx="14" cy="118" r="0.8" fill="#7a7060"/>
+    <circle cx="0" cy="108" r="0.8" fill="#7a7060"/>
+    <circle cx="-2" cy="104" r="0.8" fill="#7a7060"/>
+
+    <!-- Nostrils - larger, more prominent (donkey characteristic) -->
+    <path d="M6 106 Q12 103 15 107 Q16 112 11 113 Q6 112 6 106 Z" fill="#6a5a4a" stroke="#5a4a3a" stroke-width="0.5"/>
+    <path d="M8 107 Q10 106 12 108" fill="#5a4a3a" opacity="0.6"/>
+    <!-- Second nostril -->
+    <path d="M-4 102 Q0 99 3 103 Q3 107 -1 108 Q-5 107 -4 102 Z" fill="#6a5a4a" stroke="#5a4a3a" stroke-width="0.5"/>
+
+    <!-- Mouth line - longer, following elongated muzzle -->
+    <path d="M-6 116 Q8 122 24 122 Q34 121 42 118" fill="none" stroke="#7a6a5a" stroke-width="1.5"/>
+    <path d="M-4 118 Q10 124 24 124" fill="none" stroke="#8a7a6a" stroke-width="0.8" opacity="0.5"/>
+
+    <!-- Eye - positioned higher on longer head -->
+    <ellipse cx="50" cy="28" rx="7" ry="8" fill="#f0ece6" stroke="#8a847c" stroke-width="0.8"/>
+    <ellipse cx="49" cy="29" rx="5" ry="6" fill="url(#eyeGrad)"/>
+    <ellipse cx="48" cy="30" rx="2.5" ry="3.5" fill="#0a0500"/>
+    <ellipse cx="47" cy="26" rx="1.8" ry="2.2" fill="#fff" opacity="0.75"/>
+    <ellipse cx="51" cy="31" rx="0.8" ry="1" fill="#fff" opacity="0.35"/>
+    <!-- Upper eyelid with lashes -->
+    <path d="M43 22 Q50 19 57 23" fill="none" stroke="#5a5450" stroke-width="1.5"/>
+    <path d="M43 22 Q41 19 40 17" fill="none" stroke="#5a5450" stroke-width="0.8"/>
+    <path d="M46 20 Q45 17 44 15" fill="none" stroke="#5a5450" stroke-width="0.6"/>
+    <!-- Lower eyelid -->
+    <path d="M44 35 Q50 37 56 34" fill="none" stroke="#8a847c" stroke-width="0.8" opacity="0.5"/>
+    <!-- Brow ridge -->
+    <path d="M42 24 Q47 22 52 23" fill="none" stroke="#6a6460" stroke-width="1.2" opacity="0.4"/>
+
+    <!-- EARS - longer, more upright (donkey ears are very long!) -->
+    <!-- Left ear (farther) -->
+    <path d="M38 -4 Q30 -38 26 -54 Q24 -64 22 -54 Q20 -38 28 -8 Q34 0 38 -4 Z"
+          fill="#aaa49c" stroke="#8a847c" stroke-width="1"/>
+    <path d="M28 -8 Q24 -28 23 -44 Q22 -50 25 -44 Q28 -30 32 -12 Z" fill="#c8a0a0" opacity="0.45"/>
+    <path d="M30 -38 Q26 -50 24 -56" fill="none" stroke="#bab4ac" stroke-width="0.8"/>
+
+    <!-- Right ear (closer) - very long, characteristic donkey -->
+    <path d="M56 -4 Q52 -42 48 -60 Q46 -72 42 -62 Q38 -44 46 -10 Q52 0 56 -4 Z"
+          fill="#b5b0a8" stroke="#8a847c" stroke-width="1"/>
+    <path d="M46 -10 Q42 -32 41 -50 Q40 -56 43 -48 Q46 -34 50 -14 Z" fill="#c8a0a0" opacity="0.45"/>
+    <path d="M52 -42 Q49 -56 47 -64" fill="none" stroke="#c5c0b8" stroke-width="0.8"/>
+    <path d="M48 -8 Q46 -14 48 -18" fill="none" stroke="#9a9590" stroke-width="1.5" opacity="0.3"/>
+
+    <!-- Bridle/Halter - adjusted for longer head -->
+    <path d="M10 24 Q32 16 72 30" fill="none" stroke="url(#leatherGrad)" stroke-width="3.5"/>
+    <path d="M4 80 Q28 72 68 82" fill="none" stroke="url(#leatherGrad)" stroke-width="3.5"/>
+    <path d="M26 18 Q22 48 18 78" fill="none" stroke="url(#leatherGrad)" stroke-width="3"/>
+    <path d="M58 24 Q56 52 54 82" fill="none" stroke="url(#leatherGrad)" stroke-width="3"/>
+    <!-- Cheek piece -->
+    <path d="M42 18 Q40 48 38 78" fill="none" stroke="url(#leatherGrad)" stroke-width="2"/>
+    <!-- Noseband - lower on muzzle -->
+    <path d="M0 96 Q18 90 50 96" fill="none" stroke="url(#leatherGrad)" stroke-width="2.5"/>
+    <!-- Bit ring -->
+    <circle cx="2" cy="100" r="4.5" fill="none" stroke="#a09050" stroke-width="2.5"/>
+    <circle cx="2" cy="100" r="3" fill="none" stroke="#c0a860" stroke-width="0.8" opacity="0.5"/>
+    <!-- Buckle on browband -->
+    <rect x="40" y="15" width="5" height="6" rx="1" fill="#b0a050" stroke="#8a7a40" stroke-width="0.5"/>
+
+    <!-- HARNESS on body -->
+    <path d="M108 108 Q98 140 108 182" fill="none" stroke="url(#leatherGrad)" stroke-width="5.5" stroke-linecap="round"/>
+    <path d="M108 108 Q98 140 108 182" fill="none" stroke="#a08050" stroke-width="0.8" stroke-dasharray="3,4" opacity="0.4"/>
+    <path d="M108 108 Q178 98 252 113" fill="none" stroke="url(#leatherGrad)" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M138 182 Q190 197 242 187" fill="none" stroke="url(#leatherGrad)" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M175 100 L175 194" fill="none" stroke="url(#leatherGrad)" stroke-width="4.5" stroke-linecap="round"/>
+    <rect x="169" y="138" width="12" height="16" rx="2" fill="#c8b050" stroke="#8a7a30" stroke-width="1.2"/>
+    <line x1="172" y1="146" x2="178" y2="146" stroke="#8a7a30" stroke-width="1"/>
+    <circle cx="175" cy="146" r="1.5" fill="#8a7a30"/>
+
+    <!-- SHAFTS -->
+    <path d="M238 143 L432 146 L432 150 L238 148 Z" fill="#7a5828" stroke="#6a4820" stroke-width="1"/>
+    <path d="M238 173 L432 170 L432 174 L238 178 Z" fill="#7a5828" stroke="#6a4820" stroke-width="1"/>
+    <line x1="260" y1="145" x2="420" y2="147" stroke="#8a6830" stroke-width="0.5" opacity="0.3"/>
+    <line x1="260" y1="175" x2="420" y2="172" stroke="#8a6830" stroke-width="0.5" opacity="0.3"/>
+    <circle cx="240" cy="146" r="3" fill="#8a7040" stroke="#6a5030" stroke-width="1"/>
+    <circle cx="240" cy="176" r="3" fill="#8a7040" stroke="#6a5030" stroke-width="1"/>
+
+  </g>
+
+  <!-- ===== CART ===== -->
+  <g filter="url(#shadow)">
+
+    <rect x="508" y="278" width="464" height="10" rx="2" fill="#5a3a18" stroke="#4a2a10" stroke-width="0.8"/>
+    <rect x="508" y="288" width="464" height="8" rx="2" fill="#6b4423" stroke="#5a3a1a" stroke-width="0.8"/>
+
+    <rect x="510" y="178" width="460" height="105" rx="8" fill="url(#woodGrad)" stroke="#5a3a1a" stroke-width="2.5"/>
+
+    <line x1="518" y1="205" x2="962" y2="205" stroke="#7d532a" stroke-width="1.2" opacity="0.5"/>
+    <line x1="518" y1="232" x2="962" y2="232" stroke="#7d532a" stroke-width="1.2" opacity="0.5"/>
+    <line x1="518" y1="258" x2="962" y2="258" stroke="#7d532a" stroke-width="1.2" opacity="0.5"/>
+
+    <line x1="578" y1="183" x2="579" y2="278" stroke="#7d532a" stroke-width="1.2" opacity="0.35"/>
+    <line x1="652" y1="183" x2="651" y2="278" stroke="#7d532a" stroke-width="1.2" opacity="0.35"/>
+    <line x1="728" y1="183" x2="729" y2="278" stroke="#7d532a" stroke-width="1.2" opacity="0.35"/>
+    <line x1="808" y1="183" x2="807" y2="278" stroke="#7d532a" stroke-width="1.2" opacity="0.35"/>
+    <line x1="892" y1="183" x2="893" y2="278" stroke="#7d532a" stroke-width="1.2" opacity="0.35"/>
+
+    <path d="M525 195 Q555 193 585 195 Q615 197 645 195 Q675 193 705 196" fill="none" stroke="#c09050" stroke-width="0.6" opacity="0.25"/>
+    <path d="M540 218 Q580 216 620 218 Q660 220 700 218" fill="none" stroke="#c09050" stroke-width="0.6" opacity="0.25"/>
+    <path d="M680 245 Q720 243 760 245 Q800 247 840 245" fill="none" stroke="#c09050" stroke-width="0.6" opacity="0.25"/>
+    <path d="M560 268 Q600 266 640 268 Q680 270 720 268 Q760 266 800 269" fill="none" stroke="#c09050" stroke-width="0.6" opacity="0.25"/>
+    <ellipse cx="600" cy="220" rx="4" ry="3" fill="#6a4420" opacity="0.3"/>
+    <ellipse cx="780" cy="250" rx="3" ry="2.5" fill="#6a4420" opacity="0.25"/>
+    <ellipse cx="870" cy="195" rx="3.5" ry="3" fill="#6a4420" opacity="0.3"/>
+
+    <rect x="506" y="174" width="468" height="9" rx="4" fill="#9a6a32" stroke="#5a3a1a" stroke-width="1.2"/>
+    <rect x="508" y="175" width="464" height="3" rx="2" fill="#b88a4a" opacity="0.35"/>
+
+    <path d="M510 178 L504 184 L504 296 L510 296 Z" fill="url(#woodSide)" stroke="#4a2a10" stroke-width="0.8"/>
+    <path d="M970 178 L976 184 L976 296 L970 296 Z" fill="url(#woodSide)" stroke="#4a2a10" stroke-width="0.8"/>
+
+    <path d="M510 178 L528 178 L528 196 L520 196 L520 186 L510 186 Z" fill="url(#metalGrad)" stroke="#3a3a3a" stroke-width="1"/>
+    <circle cx="516" cy="182" r="1.5" fill="#555"/>
+    <circle cx="524" cy="182" r="1.5" fill="#555"/>
+
+    <path d="M952 178 L970 178 L970 186 L960 186 L960 196 L952 196 Z" fill="url(#metalGrad)" stroke="#3a3a3a" stroke-width="1"/>
+    <circle cx="956" cy="182" r="1.5" fill="#555"/>
+    <circle cx="964" cy="182" r="1.5" fill="#555"/>
+
+    <path d="M510 270 L528 270 L528 288 L520 288 L520 278 L510 278 Z" fill="url(#metalGrad)" stroke="#3a3a3a" stroke-width="1"/>
+    <circle cx="516" cy="274" r="1.5" fill="#555"/>
+
+    <path d="M952 270 L970 270 L970 278 L960 278 L960 288 L952 288 Z" fill="url(#metalGrad)" stroke="#3a3a3a" stroke-width="1"/>
+    <circle cx="964" cy="274" r="1.5" fill="#555"/>
+
+    <rect x="734" y="174" width="12" height="8" rx="1" fill="url(#metalGrad)" stroke="#3a3a3a" stroke-width="0.8"/>
+    <circle cx="737" cy="178" r="1.2" fill="#555"/>
+    <circle cx="743" cy="178" r="1.2" fill="#555"/>
+
+    <line x1="605" y1="310" x2="875" y2="310" stroke="#4a4a4a" stroke-width="7"/>
+    <line x1="605" y1="308" x2="875" y2="308" stroke="#666" stroke-width="2" opacity="0.3"/>
+
+    <!-- ===== LEFT WHEEL ===== -->
+    <g transform="translate(630, 330)">
+      <circle r="102" fill="none" stroke="#1a1a1a" stroke-width="20"/>
+      <circle r="90" fill="none" stroke="#333" stroke-width="2"/>
+      <circle r="110" fill="none" stroke="#222" stroke-width="1"/>
+      <circle r="88" fill="url(#wheelWood)" stroke="#3a3018" stroke-width="2.5"/>
+      <g stroke="#3a2a1a" stroke-width="8" stroke-linecap="round">
+        <line x1="0" y1="-82" x2="0" y2="82"/>
+        <line x1="-82" y1="0" x2="82" y2="0"/>
+        <line x1="-58" y1="-58" x2="58" y2="58"/>
+        <line x1="58" y1="-58" x2="-58" y2="58"/>
+      </g>
+      <g stroke="#6a5a4a" stroke-width="1.5" opacity="0.25" stroke-linecap="round">
+        <line x1="-1" y1="-80" x2="-1" y2="80"/>
+        <line x1="-80" y1="-1" x2="80" y2="-1"/>
+        <line x1="-57" y1="-57" x2="57" y2="57"/>
+        <line x1="57" y1="-57" x2="-57" y2="57"/>
+      </g>
+      <circle r="82" fill="none" stroke="#5a4020" stroke-width="3" opacity="0.4"/>
+      <circle r="32" fill="#3a2a1a" stroke="#2a1a0a" stroke-width="3"/>
+      <circle r="28" fill="none" stroke="#4a3a2a" stroke-width="1" opacity="0.4"/>
+      <circle r="15" fill="url(#hubGrad)" stroke="#2a2a2a" stroke-width="2"/>
+      <circle r="8" fill="#666" stroke="#444" stroke-width="1"/>
+      <circle r="4" fill="#888"/>
+      <circle r="2" fill="#aaa" opacity="0.6"/>
+    </g>
+
+    <!-- ===== RIGHT WHEEL ===== -->
+    <g transform="translate(860, 330)">
+      <circle r="102" fill="none" stroke="#1a1a1a" stroke-width="20"/>
+      <circle r="90" fill="none" stroke="#333" stroke-width="2"/>
+      <circle r="110" fill="none" stroke="#222" stroke-width="1"/>
+      <circle r="88" fill="url(#wheelWood)" stroke="#3a3018" stroke-width="2.5"/>
+      <g stroke="#3a2a1a" stroke-width="8" stroke-linecap="round">
+        <line x1="0" y1="-82" x2="0" y2="82"/>
+        <line x1="-82" y1="0" x2="82" y2="0"/>
+        <line x1="-58" y1="-58" x2="58" y2="58"/>
+        <line x1="58" y1="-58" x2="-58" y2="58"/>
+      </g>
+      <g stroke="#6a5a4a" stroke-width="1.5" opacity="0.25" stroke-linecap="round">
+        <line x1="-1" y1="-80" x2="-1" y2="80"/>
+        <line x1="-80" y1="-1" x2="80" y2="-1"/>
+        <line x1="-57" y1="-57" x2="57" y2="57"/>
+        <line x1="57" y1="-57" x2="-57" y2="57"/>
+      </g>
+      <circle r="82" fill="none" stroke="#5a4020" stroke-width="3" opacity="0.4"/>
+      <circle r="32" fill="#3a2a1a" stroke="#2a1a0a" stroke-width="3"/>
+      <circle r="28" fill="none" stroke="#4a3a2a" stroke-width="1" opacity="0.4"/>
+      <circle r="15" fill="url(#hubGrad)" stroke="#2a2a2a" stroke-width="2"/>
+      <circle r="8" fill="#666" stroke="#444" stroke-width="1"/>
+      <circle r="4" fill="#888"/>
+      <circle r="2" fill="#aaa" opacity="0.6"/>
+    </g>
+
+  </g>
+
+
+</svg>
+

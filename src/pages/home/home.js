@@ -21,10 +21,10 @@ function saveCart(cart) {
   } catch (e) { console.error('Error saving cart:', e); }
 }
 
-function addToCart(productId) {
+function addToCart(productId, quantity = 1) {
   const cart = getCart();
   const existing = cart.find(i => i.productId === productId);
-  if (existing) { existing.quantity += 1; } else { cart.push({ productId, quantity: 1 }); }
+  if (existing) { existing.quantity += quantity; } else { cart.push({ productId, quantity }); }
   saveCart(cart);
 }
 
@@ -256,6 +256,11 @@ function showProductDetail(product) {
 
   const modal = new bootstrap.Modal(document.getElementById('productModal'));
   updateCartBadge();
+
+  // Reset quantity selector
+  const qtyInput = document.getElementById('modalQtyInput');
+  if (qtyInput) qtyInput.value = 1;
+
   modal.show();
 }
 
@@ -272,10 +277,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     modalBtn.addEventListener('click', function () {
       const productId = parseInt(this.dataset.productId);
       const productName = this.dataset.productName;
-      addToCart(productId);
-      toast.success(`"${productName}" е добавена в каруцата!`);
+      const qtyInput = document.getElementById('modalQtyInput');
+      const quantity = Math.max(1, parseInt(qtyInput?.value) || 1);
+      addToCart(productId, quantity);
+      toast.success(`"${productName}" x${quantity} е добавена в каруцата!`);
       const modal = bootstrap.Modal.getInstance(document.getElementById('productModal'));
       modal.hide();
     });
   }
+
+  // Quantity selector buttons
+  document.getElementById('modalQtyMinus')?.addEventListener('click', () => {
+    const input = document.getElementById('modalQtyInput');
+    const val = parseInt(input.value) || 1;
+    if (val > 1) input.value = val - 1;
+  });
+  document.getElementById('modalQtyPlus')?.addEventListener('click', () => {
+    const input = document.getElementById('modalQtyInput');
+    const val = parseInt(input.value) || 1;
+    if (val < 99) input.value = val + 1;
+  });
 });

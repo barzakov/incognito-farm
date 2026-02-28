@@ -81,8 +81,14 @@
               <div id="productDetailExtra" class="product-detail-extra mb-4"></div>
 
               <div class="mt-auto pt-3 border-top">
-                <button type="button" class="btn btn-success w-100 d-flex align-items-center justify-content-center gap-2" id="modalAddToCartBtn">
-                  <i class="bi bi-cart4"></i> <span>Добави в каруца</span>
+                <div class="quantity-selector d-flex align-items-center justify-content-center mb-2">
+                  <button type="button" class="btn btn-outline-success btn-sm" id="modalQtyMinus">−</button>
+                  <input type="number" class="form-control form-control-sm text-center mx-2" id="modalQtyInput" value="1" min="1" max="99" style="width: 60px;">
+                  <button type="button" class="btn btn-outline-success btn-sm" id="modalQtyPlus">+</button>
+                </div>
+                <button type="button" class="btn btn-success w-100 d-flex flex-column align-items-center justify-content-center" id="modalAddToCartBtn">
+                  <img src="/pages/cart/karuca.svg" alt="" class="btn-cart-icon" />
+                  <span>Добави в каруца</span>
                 </button>
               </div>
             </aside>

@@ -554,3 +554,56 @@ html {
 `.animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+
+/* Custom karuca (cart) SVG icon sizes */
+.btn-cart-icon {
+  width: 32px;
+  height: 32px;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.btn-sm .btn-cart-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.cart-icon-lg {
+  width: 192px;
+  height: 192px;
+  display: block;
+  margin: 0 auto;
+}
+
+.page-title-cart-icon {
+  width: 120px;
+  height: 120px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Quantity selector in product modal */
+.quantity-selector .btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: 50%;
+}
+
+.quantity-selector input[type="number"] {
+  -moz-appearance: textfield;
+  border-radius: var(--border-radius-md, 8px);
+  font-weight: 600;
+}
+
+.quantity-selector input[type="number"]::-webkit-outer-spin-button,
+.quantity-selector input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

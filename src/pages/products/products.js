@@ -27,14 +27,14 @@ function saveCart(cart) {
   }
 }
 
-function addToCart(productId) {
+function addToCart(productId, quantity = 1) {
   const cart = getCart();
   const existingItem = cart.find(item => item.productId === productId);
   
   if (existingItem) {
-    existingItem.quantity += 1;
+    existingItem.quantity += quantity;
   } else {
-    cart.push({ productId, quantity: 1 });
+    cart.push({ productId, quantity });
   }
   
   saveCart(cart);
@@ -184,8 +184,8 @@ function displayProducts(products) {
                 <p class="product-price fw-bold text-success">${price}</p>
               `}
             </div>
-            <button class="btn btn-success btn-sm add-to-cart-btn" data-product-id="${p.product_id}" data-product-name="${productName}" onclick="event.stopPropagation();">
-              <i class="bi bi-cart4"></i> Добави в каруца
+            <button class="btn btn-success btn-sm add-to-cart-btn d-inline-flex align-items-center justify-content-center gap-2" data-product-id="${p.product_id}" data-product-name="${productName}" onclick="event.stopPropagation();">
+              <img src="/pages/cart/karuca.svg" alt="" class="btn-cart-icon" /> Добави в каруца
             </button>
           </div>
         </div>
@@ -304,6 +304,11 @@ function showProductDetail(product) {
 
   const modal = new bootstrap.Modal(document.getElementById('productModal'));
   updateCartBadge();
+
+  // Reset quantity selector
+  const qtyInput = document.getElementById('modalQtyInput');
+  if (qtyInput) qtyInput.value = 1;
+
   modal.show();
 }
 
@@ -316,9 +321,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('modalAddToCartBtn').addEventListener('click', function() {
     const productId = parseInt(this.dataset.productId);
     const productName = this.dataset.productName;
-    addToCart(productId);
-    toast.success(`"${productName}" е добавена в каруцата!`);
+    const qtyInput = document.getElementById('modalQtyInput');
+    const quantity = Math.max(1, parseInt(qtyInput?.value) || 1);
+    addToCart(productId, quantity);
+    toast.success(`"${productName}" x${quantity} е добавена в каруцата!`);
     const modal = bootstrap.Modal.getInstance(document.getElementById('productModal'));
     modal.hide();
+  });
+
+  // Quantity selector buttons
+  document.getElementById('modalQtyMinus')?.addEventListener('click', () => {
+    const input = document.getElementById('modalQtyInput');
+    const val = parseInt(input.value) || 1;
+    if (val > 1) input.value = val - 1;
+  });
+  document.getElementById('modalQtyPlus')?.addEventListener('click', () => {
+    const input = document.getElementById('modalQtyInput');
+    const val = parseInt(input.value) || 1;
+    if (val < 99) input.value = val + 1;
   });
 });
