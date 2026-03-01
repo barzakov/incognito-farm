@@ -31,15 +31,49 @@ async function checkAdminAccess() {
 
 async function loadStats() {
   try {
-    const [usersRes, productsRes, ordersRes] = await Promise.all([
-      supabase.from('users').select('user_id', { count: 'exact', head: true }),
-      supabase.from('products').select('product_id', { count: 'exact', head: true }),
-      supabase.from('orders').select('order_id', { count: 'exact', head: true }),
+    // Calculate date 5 days from now
+    const fiveDaysFromNow = new Date();
+    fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5);
+    fiveDaysFromNow.setHours(23, 59, 59, 999); // End of day
+
+    const [ordersRes, productsRes] = await Promise.all([
+      // Fetch orders to filter by status in JavaScript
+      supabase
+        .from('orders')
+        .select('order_id, order_status, order_done, order_archived'),
+      // Fetch all products to filter by expire date in JavaScript
+      supabase
+        .from('products')
+        .select('product_id, extra')
     ]);
 
-    document.getElementById('stat-users').textContent = usersRes.count ?? 0;
-    document.getElementById('stat-products').textContent = productsRes.count ?? 0;
-    document.getElementById('stat-orders').textContent = ordersRes.count ?? 0;
+    // Count waiting orders with status "Чакаща"
+    let waitingCount = 0;
+    if (ordersRes.data) {
+      waitingCount = ordersRes.data.filter((o) => 
+        o.order_status?.current_status === 'Чакаща' && 
+        !o.order_done && 
+        !o.order_archived
+      ).length;
+    }
+
+    // Filter products expiring within 5 days
+    let expiringCount = 0;
+    if (productsRes.data) {
+      expiringCount = productsRes.data.filter((p) => {
+        const expireDate = p.extra?.expire;
+        if (!expireDate) return false;
+        
+        // Parse YYYY-MM-DD format
+        const [year, month, day] = expireDate.split('-').map(Number);
+        const productExpireDate = new Date(year, month - 1, day, 23, 59, 59, 999);
+        
+        return productExpireDate <= fiveDaysFromNow;
+      }).length;
+    }
+
+    document.getElementById('stat-waiting-orders').textContent = waitingCount;
+    document.getElementById('stat-expiring-products').textContent = expiringCount;
   } catch (err) {
     console.error('Error loading stats:', err);
   }
@@ -287,8 +321,119 @@ function attachProductActions() {
   });
 }
 
+// ─── Image management functions ──────────────────────────────
+
+function renderEditProductGallery(existingImages, form) {
+  const gallery = form.querySelector('#edit-product-images-gallery');
+  if (!gallery) return;
+
+  const tempImages = JSON.parse(form.dataset.tempImages || '[]');
+  const allImages = [...existingImages, ...tempImages];
+
+  if (allImages.length === 0) {
+    gallery.innerHTML = '<div class="col-12 text-muted">Няма добавени изображения</div>';
+    return;
+  }
+
+  gallery.innerHTML = allImages.map((img, index) => {
+    const isTemp = index >= existingImages.length;
+    const imageUrl = img.dataUrl || supabase.storage.from('products').getPublicUrl(img.path).data.publicUrl;
+    const isActive = img.active;
+
+    return `
+      <div class="col-md-4 col-lg-3 position-relative">
+        <div class="card border-0 shadow-sm position-relative h-100" style="overflow: hidden;">
+          <img src="${imageUrl}" class="card-img-top" style="height: 150px; object-fit: cover;">
+          <div class="position-absolute top-0 end-0 m-2">
+            ${isActive ? '<span class="badge bg-success">Активно</span>' : ''}
+          </div>
+          <div class="card-body p-2 d-flex flex-column gap-1">
+            ${!isActive ? `
+              <button type="button" class="btn btn-sm btn-warning set-active-btn" data-index="${index}">
+                <i class="bi bi-check-circle"></i> Избери
+              </button>
+            ` : ''}
+            <button type="button" class="btn btn-sm btn-danger delete-image-btn" data-index="${index}">
+              <i class="bi bi-trash"></i> Изтрий
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Attach event listeners
+  form.querySelectorAll('.set-active-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const index = parseInt(btn.dataset.index);
+      setActiveImage(index, form);
+    });
+  });
+
+  form.querySelectorAll('.delete-image-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const index = parseInt(btn.dataset.index);
+      deleteImage(index, form);
+    });
+  });
+}
+
+function setActiveImage(index, form) {
+  const existingImages = JSON.parse(form.dataset.productImages || '[]');
+  const tempImages = JSON.parse(form.dataset.tempImages || '[]');
+  const allImages = [...existingImages, ...tempImages];
+
+  // Mark all as inactive, then mark selected as active
+  allImages.forEach((img, i) => {
+    img.active = i === index;
+  });
+
+  // Split back
+  const newExisting = allImages.slice(0, existingImages.length);
+  const newTemp = allImages.slice(existingImages.length);
+
+  form.dataset.productImages = JSON.stringify(newExisting);
+  form.dataset.tempImages = JSON.stringify(newTemp);
+
+  renderEditProductGallery(newExisting, form);
+}
+
+function deleteImage(index, form) {
+  const existingImages = JSON.parse(form.dataset.productImages || '[]');
+  const tempImages = JSON.parse(form.dataset.tempImages || '[]');
+  const allImages = [...existingImages, ...tempImages];
+
+  const deletedWasActive = allImages[index].active;
+
+  // Remove image
+  allImages.splice(index, 1);
+
+  // If deleted was active, make first one active (if any exist)
+  if (deletedWasActive && allImages.length > 0) {
+    allImages[0].active = true;
+  }
+
+  // Clean up File map if deleting a temp image
+  const deletedImage = allImages[index];
+  if (deletedImage && deletedImage.id && index >= existingImages.length) {
+    form._tempFiles.delete(deletedImage.id);
+  }
+
+  // Split back
+  const newExisting = allImages.slice(0, existingImages.length - (index < existingImages.length ? 1 : 0));
+  const newTemp = allImages.slice(newExisting.length);
+
+  form.dataset.productImages = JSON.stringify(newExisting);
+  form.dataset.tempImages = JSON.stringify(newTemp);
+
+  renderEditProductGallery(newExisting, form);
+}
+
 async function showEditProductModal(productData) {
   const form = document.getElementById('editProductForm');
+
   if (!form) return;
 
   // Load groups into dropdown
@@ -310,7 +455,15 @@ async function showEditProductModal(productData) {
 
   // Populate extra fields (country, size, expire)
   document.getElementById('edit-product-country').value = productData.extra?.country || '';
-  document.getElementById('edit-product-expire').value = productData.extra?.expire || '';
+  
+  // Convert expire date from YYYY-MM-DD to DD.MM.YYYY format
+  const expireDate = productData.extra?.expire || '';
+  if (expireDate) {
+    const [year, month, day] = expireDate.split('-');
+    document.getElementById('edit-product-expire').value = `${day}.${month}.${year}`;
+  } else {
+    document.getElementById('edit-product-expire').value = '';
+  }
   
   // Populate size fields
   if (productData.extra?.size) {
@@ -330,32 +483,64 @@ async function showEditProductModal(productData) {
   }
 
   // Show current image if exists
-  const previewContainer = document.getElementById('edit-product-image-preview');
-  if (productData.images_location) {
-    const publicUrl = supabase.storage.from('products').getPublicUrl(productData.images_location).data.publicUrl;
-    previewContainer.innerHTML = `
-      <div>
-        <img src="${publicUrl}" class="img-fluid rounded" style="max-height: 150px;">
-        <small class="d-block text-muted mt-2">Текущо изображение</small>
-      </div>
-    `;
-  } else {
-    previewContainer.innerHTML = '';
+  // Initialize images array from productData
+  const imagesArray = productData.images || [];
+  newForm.dataset.productImages = JSON.stringify(imagesArray);
+  newForm.dataset.tempImages = JSON.stringify([]);
+  // Map to store File objects (not serializable, so kept in memory)
+  newForm._tempFiles = new Map();
+
+  // Render existing images
+  renderEditProductGallery(imagesArray, newForm);
+
+  // Add image button listener
+  const addImageBtn = newForm.querySelector('#add-edit-image-btn');
+  if (addImageBtn) {
+    addImageBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const imageInput = newForm.querySelector('#edit-product-image');
+      if (imageInput) imageInput.click();
+    });
   }
 
-  // Image preview for new upload
-  const imageInput = document.getElementById('edit-product-image');
+  // File input change listener
+  const imageInput = newForm.querySelector('#edit-product-image');
   if (imageInput) {
     imageInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          previewContainer.innerHTML = `<img src="${event.target.result}" class="img-fluid rounded" style="max-height: 150px;">`;
-        };
-        reader.readAsDataURL(file);
+      if (!file) return;
+
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Файлът е твърде голям (макс. 5MB)');
+        return;
       }
-    }, { once: true });
+
+      // Read file and add to temp images
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const tempImages = JSON.parse(newForm.dataset.tempImages || '[]');
+        const imageId = `${Date.now()}_${Math.random()}`;
+        
+        tempImages.push({
+          id: imageId,
+          path: null, // Will be assigned on upload
+          active: tempImages.length === 0 && imagesArray.length === 0,
+          dataUrl: event.target.result,
+          fileName: file.name,
+        });
+        
+        // Store the actual File object separately (not serializable)
+        newForm._tempFiles.set(imageId, file);
+        
+        newForm.dataset.tempImages = JSON.stringify(tempImages);
+        renderEditProductGallery(imagesArray, newForm);
+      };
+      reader.readAsDataURL(file);
+
+      // Clear input
+      imageInput.value = '';
+    });
   }
 
   // Add submit listener to new form
@@ -381,14 +566,13 @@ async function handleEditProductSubmit(productId, form) {
   submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Запазване...';
 
   try {
-    const name = document.getElementById('edit-product-name').value.trim();
-    const briefInfo = document.getElementById('edit-product-brief').value.trim();
-    const info = document.getElementById('edit-product-info').value.trim();
-    const price = parseFloat(document.getElementById('edit-product-price').value);
-    const discount = document.getElementById('edit-product-discount').value ? parseFloat(document.getElementById('edit-product-discount').value) : null;
-    const availability = document.getElementById('edit-product-availability').value === 'true';
-    const groupId = document.getElementById('edit-product-group').value ? parseInt(document.getElementById('edit-product-group').value) : null;
-    const imageFile = document.getElementById('edit-product-image').files[0];
+    const name = form.querySelector('#edit-product-name').value.trim();
+    const briefInfo = form.querySelector('#edit-product-brief').value.trim();
+    const info = form.querySelector('#edit-product-info').value.trim();
+    const price = parseFloat(form.querySelector('#edit-product-price').value);
+    const discount = form.querySelector('#edit-product-discount').value ? parseFloat(form.querySelector('#edit-product-discount').value) : null;
+    const availability = form.querySelector('#edit-product-availability').value === 'true';
+    const groupId = form.querySelector('#edit-product-group').value ? parseInt(form.querySelector('#edit-product-group').value) : null;
 
     if (!name || isNaN(price)) {
       toast.error('Моля попълнете задължителните полета.');
@@ -396,8 +580,13 @@ async function handleEditProductSubmit(productId, form) {
     }
 
     // Collect extra data (country, size, expire)
-    const country = document.getElementById('edit-product-country').value.trim();
-    const expire = document.getElementById('edit-product-expire').value;
+    const country = form.querySelector('#edit-product-country').value.trim();
+    let expire = form.querySelector('#edit-product-expire').value;
+    // Convert DD.MM.YYYY to YYYY-MM-DD for database
+    if (expire && expire.includes('.')) {
+      const [day, month, year] = expire.split('.');
+      expire = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
     
     // Determine which size unit is selected and get its value
     let sizeData = {
@@ -407,20 +596,20 @@ async function handleEditProductSubmit(productId, form) {
       active: null
     };
     
-    const gramsRadio = document.getElementById('edit-product-size-grams');
-    const kgRadio = document.getElementById('edit-product-size-kg');
-    const piecesRadio = document.getElementById('edit-product-size-pieces');
+    const gramsRadio = form.querySelector('#edit-product-size-grams');
+    const kgRadio = form.querySelector('#edit-product-size-kg');
+    const piecesRadio = form.querySelector('#edit-product-size-pieces');
     
     if (gramsRadio.checked) {
-      const value = document.getElementById('edit-product-size-grams-value').value;
+      const value = form.querySelector('#edit-product-size-grams-value').value;
       sizeData.грамове = value ? parseFloat(value) : null;
       sizeData.active = 'грамове';
     } else if (kgRadio.checked) {
-      const value = document.getElementById('edit-product-size-kg-value').value;
+      const value = form.querySelector('#edit-product-size-kg-value').value;
       sizeData.килограми = value ? parseFloat(value) : null;
       sizeData.active = 'килограми';
     } else if (piecesRadio.checked) {
-      const value = document.getElementById('edit-product-size-pieces-value').value;
+      const value = form.querySelector('#edit-product-size-pieces-value').value;
       sizeData.бройки = value ? parseInt(value) : null;
       sizeData.active = 'бройки';
     }
@@ -444,18 +633,45 @@ async function handleEditProductSubmit(productId, form) {
       extra,
     };
 
-    // Handle image upload if new file selected
-    if (imageFile) {
-      const fileName = `${Date.now()}_${imageFile.name}`;
-      const filePath = `products/${productId}/${fileName}`;
+    // Handle image uploads
+    const existingImages = JSON.parse(form.dataset.productImages || '[]');
+    const tempImages = JSON.parse(form.dataset.tempImages || '[]');
+    const uploadedImages = [];
 
-      const { error: uploadError } = await supabase.storage
-        .from('products')
-        .upload(filePath, imageFile);
+    // Upload new images
+    for (const tempImg of tempImages) {
+      const file = form._tempFiles.get(tempImg.id);
+      if (file) {
+        const fileName = `${Date.now()}_${file.name}`;
+        const filePath = `products/${productId}/${fileName}`;
 
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage
+          .from('products')
+          .upload(filePath, file);
 
-      updateData.images_location = filePath;
+        if (uploadError) throw uploadError;
+
+        uploadedImages.push({
+          path: filePath,
+          active: tempImg.active
+        });
+      }
+    }
+
+    // Combine with existing images
+    const finalImages = [...existingImages, ...uploadedImages];
+
+    // Ensure at least one image is marked as active if images exist
+    if (finalImages.length > 0 && !finalImages.some(img => img.active)) {
+      finalImages[0].active = true;
+    }
+
+    updateData.images = finalImages;
+
+    // Set images_location to the active image path
+    const activeImage = finalImages.find(img => img.active);
+    if (activeImage) {
+      updateData.images_location = activeImage.path;
     }
 
     const { error } = await supabase
@@ -467,7 +683,7 @@ async function handleEditProductSubmit(productId, form) {
 
     toast.success('Продуктът е обновен успешно!');
     // eslint-disable-next-line no-undef
-    const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
+    const modal = bootstrap.Modal.getInstance(form.closest('.modal'));
     if (modal) modal.hide();
     await loadProducts();
     await loadStats();
@@ -550,21 +766,58 @@ function initializeProductForm() {
   // Load groups into dropdown (no need to wait, it loads in background)
   loadGroupsIntoDropdown().catch(err => console.error('Error loading groups:', err));
 
-  // Image preview
-  const imageInput = document.getElementById('product-image');
+  // Initialize images array in form (only metadata, files stored separately)
+  form.dataset.tempImages = JSON.stringify([]);
+  // Map to store File objects (not serializable, so kept in memory)
+  form._tempFiles = new Map();
+
+  // Add image button listener
+  const addImageBtn = form.querySelector('#add-product-image-btn');
+  if (addImageBtn) {
+    addImageBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const imageInput = form.querySelector('#product-image');
+      if (imageInput) imageInput.click();
+    });
+  }
+
+  // File input change listener
+  const imageInput = form.querySelector('#product-image');
   if (imageInput) {
     imageInput.addEventListener('change', (e) => {
-      const preview = document.getElementById('product-image-preview');
       const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          preview.innerHTML = `<img src="${event.target.result}" class="img-fluid rounded" style="max-height: 150px;">`;
-        };
-        reader.readAsDataURL(file);
-      } else {
-        preview.innerHTML = '';
+      if (!file) return;
+
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Файлът е твърде голям (макс. 5MB)');
+        return;
       }
+
+      // Read file and add to temp images
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const tempImages = JSON.parse(form.dataset.tempImages || '[]');
+        const imageId = `${Date.now()}_${Math.random()}`;
+        
+        tempImages.push({
+          id: imageId,
+          path: null,
+          active: tempImages.length === 0,
+          dataUrl: event.target.result,
+          fileName: file.name,
+        });
+        
+        // Store the actual File object separately (not serializable)
+        form._tempFiles.set(imageId, file);
+        
+        form.dataset.tempImages = JSON.stringify(tempImages);
+        renderProductGallery([], form);
+      };
+      reader.readAsDataURL(file);
+
+      // Clear input
+      imageInput.value = '';
     });
   }
 
@@ -577,18 +830,22 @@ function initializeProductForm() {
     submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Добавяне...';
 
     try {
-      const name = document.getElementById('product-name').value.trim();
-      const briefInfo = document.getElementById('product-brief').value.trim();
-      const info = document.getElementById('product-info').value.trim();
-      const price = parseFloat(document.getElementById('product-price').value);
-      const discount = document.getElementById('product-discount').value ? parseFloat(document.getElementById('product-discount').value) : null;
-      const availability = document.getElementById('product-availability').value === 'true';
-      const groupId = document.getElementById('product-group').value ? parseInt(document.getElementById('product-group').value) : null;
-      const imageFile = document.getElementById('product-image').files[0];
+      const name = form.querySelector('#product-name').value.trim();
+      const briefInfo = form.querySelector('#product-brief').value.trim();
+      const info = form.querySelector('#product-info').value.trim();
+      const price = parseFloat(form.querySelector('#product-price').value);
+      const discount = form.querySelector('#product-discount').value ? parseFloat(form.querySelector('#product-discount').value) : null;
+      const availability = form.querySelector('#product-availability').value === 'true';
+      const groupId = form.querySelector('#product-group').value ? parseInt(form.querySelector('#product-group').value) : null;
 
       // Collect extra data (country, size, expire)
-      const country = document.getElementById('product-country').value.trim();
-      const expire = document.getElementById('product-expire').value;
+      const country = form.querySelector('#product-country').value.trim();
+      let expire = form.querySelector('#product-expire').value;
+      // Convert DD.MM.YYYY to YYYY-MM-DD for database
+      if (expire && expire.includes('.')) {
+        const [day, month, year] = expire.split('.');
+        expire = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
       
       // Determine which size unit is selected and get its value
       let sizeData = {
@@ -598,20 +855,20 @@ function initializeProductForm() {
         active: null
       };
       
-      const gramsRadio = document.getElementById('product-size-grams');
-      const kgRadio = document.getElementById('product-size-kg');
-      const piecesRadio = document.getElementById('product-size-pieces');
+      const gramsRadio = form.querySelector('#product-size-grams');
+      const kgRadio = form.querySelector('#product-size-kg');
+      const piecesRadio = form.querySelector('#product-size-pieces');
       
       if (gramsRadio.checked) {
-        const value = document.getElementById('product-size-grams-value').value;
+        const value = form.querySelector('#product-size-grams-value').value;
         sizeData.грамове = value ? parseFloat(value) : null;
         sizeData.active = 'грамове';
       } else if (kgRadio.checked) {
-        const value = document.getElementById('product-size-kg-value').value;
+        const value = form.querySelector('#product-size-kg-value').value;
         sizeData.килограми = value ? parseFloat(value) : null;
         sizeData.active = 'килограми';
       } else if (piecesRadio.checked) {
-        const value = document.getElementById('product-size-pieces-value').value;
+        const value = form.querySelector('#product-size-pieces-value').value;
         sizeData.бройки = value ? parseInt(value) : null;
         sizeData.active = 'бройки';
       }
@@ -644,25 +901,47 @@ function initializeProductForm() {
       if (insertError) throw insertError;
 
       const productId = insertedProduct[0].product_id;
-      let imagesLocation = null;
+      const tempImages = JSON.parse(form.dataset.tempImages || '[]');
+      const uploadedImages = [];
 
-      // Upload image if provided
-      if (imageFile) {
-        const fileName = `${Date.now()}_${imageFile.name}`;
-        const filePath = `products/${productId}/${fileName}`;
+      // Upload images if provided
+      for (const tempImg of tempImages) {
+        const file = form._tempFiles.get(tempImg.id);
+        if (file) {
+          const fileName = `${Date.now()}_${file.name}`;
+          const filePath = `products/${productId}/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('products')
-          .upload(filePath, imageFile);
+          const { error: uploadError } = await supabase.storage
+            .from('products')
+            .upload(filePath, file);
 
-        if (uploadError) throw uploadError;
+          if (uploadError) throw uploadError;
 
-        imagesLocation = filePath;
+          uploadedImages.push({
+            path: filePath,
+            active: tempImg.active
+          });
+        }
+      }
 
-        // Update product with image location
+      // Ensure at least one image is marked as active if images exist
+      if (uploadedImages.length > 0 && !uploadedImages.some(img => img.active)) {
+        uploadedImages[0].active = true;
+      }
+
+      // Update product with images
+      if (uploadedImages.length > 0) {
+        const updateImages = { images: uploadedImages };
+        
+        // Set images_location to the active image path
+        const activeImage = uploadedImages.find(img => img.active);
+        if (activeImage) {
+          updateImages.images_location = activeImage.path;
+        }
+
         const { error: updateError } = await supabase
           .from('products')
-          .update({ images_location: imagesLocation })
+          .update(updateImages)
           .eq('product_id', productId);
 
         if (updateError) throw updateError;
@@ -670,7 +949,9 @@ function initializeProductForm() {
 
       toast.success('Продуктът е добавен успешно!');
       form.reset();
-      document.getElementById('product-image-preview').innerHTML = '';
+      form.dataset.tempImages = JSON.stringify([]);
+      const gallery = form.querySelector('#product-images-gallery');
+      if (gallery) gallery.innerHTML = '<div class="col-12 text-muted">Няма добавени изображения</div>';
       // eslint-disable-next-line no-undef
       const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
       if (modal) modal.hide();
@@ -678,7 +959,7 @@ function initializeProductForm() {
       await loadStats();
     } catch (err) {
       console.error('Add product error:', err);
-      toast.error('Грешка при добавяне на продукта.');
+      toast.error('Грешка при добавяне на продукт.');
     } finally {
       submitBtn.disabled = false;
       submitBtn.innerHTML = originalText;
@@ -686,47 +967,420 @@ function initializeProductForm() {
   });
 }
 
+function renderProductGallery(existingImages, form) {
+  const gallery = form.querySelector('#product-images-gallery');
+  if (!gallery) return;
+
+  const tempImages = JSON.parse(form.dataset.tempImages || '[]');
+  const allImages = [...existingImages, ...tempImages];
+
+  if (allImages.length === 0) {
+    gallery.innerHTML = '<div class="col-12 text-muted">Няма добавени изображения</div>';
+    return;
+  }
+
+  gallery.innerHTML = allImages.map((img, index) => {
+    const imageUrl = img.dataUrl || supabase.storage.from('products').getPublicUrl(img.path).data.publicUrl;
+    const isActive = img.active;
+
+    return `
+      <div class="col-md-4 col-lg-3 position-relative">
+        <div class="card border-0 shadow-sm position-relative h-100" style="overflow: hidden;">
+          <img src="${imageUrl}" class="card-img-top" style="height: 150px; object-fit: cover;">
+          <div class="position-absolute top-0 end-0 m-2">
+            ${isActive ? '<span class="badge bg-success">Активно</span>' : ''}
+          </div>
+          <div class="card-body p-2 d-flex flex-column gap-1">
+            ${!isActive ? `
+              <button type="button" class="btn btn-sm btn-warning set-active-product-btn" data-index="${index}">
+                <i class="bi bi-check-circle"></i> Избери
+              </button>
+            ` : ''}
+            <button type="button" class="btn btn-sm btn-danger delete-product-image-btn" data-index="${index}">
+              <i class="bi bi-trash"></i> Изтрий
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Attach event listeners
+  form.querySelectorAll('.set-active-product-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const index = parseInt(btn.dataset.index);
+      setActiveProductImage(index, form);
+    });
+  });
+
+  form.querySelectorAll('.delete-product-image-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const index = parseInt(btn.dataset.index);
+      deleteProductImage(index, form);
+    });
+  });
+}
+
+function setActiveProductImage(index, form) {
+  const tempImages = JSON.parse(form.dataset.tempImages || '[]');
+
+  // Mark all as inactive, then mark selected as active
+  tempImages.forEach((img, i) => {
+    img.active = i === index;
+  });
+
+  form.dataset.tempImages = JSON.stringify(tempImages);
+  renderProductGallery([], form);
+}
+
+function deleteProductImage(index, form) {
+  const tempImages = JSON.parse(form.dataset.tempImages || '[]');
+  const deletedImage = tempImages[index];
+  const deletedWasActive = deletedImage.active;
+
+  // Remove from File map if it's a temp image
+  if (deletedImage.id) {
+    form._tempFiles.delete(deletedImage.id);
+  }
+
+  // Remove image
+  tempImages.splice(index, 1);
+
+  // If deleted was active, make first one active (if any exist)
+  if (deletedWasActive && tempImages.length > 0) {
+    tempImages[0].active = true;
+  }
+
+  form.dataset.tempImages = JSON.stringify(tempImages);
+  renderProductGallery([], form);
+}
+
+// ─── Order statuses ──────────────────────────────────────────
+
+const ORDER_STATUSES = [
+  'Чакаща',
+  'Потвърдена',
+  'В обработка',
+  'Изпратена',
+  'Доставена',
+  'Отказана',
+  'Върната',
+];
+
+function getOrderStatusBadgeClass(status) {
+  if (!status) return 'bg-secondary';
+  const s = status.toLowerCase();
+  if (s.includes('достав')) return 'bg-success';
+  if (s.includes('изпрат')) return 'bg-info text-dark';
+  if (s.includes('обработ')) return 'bg-primary';
+  if (s.includes('потвърд')) return 'bg-success-subtle text-success';
+  if (s.includes('отказ')) return 'bg-danger';
+  if (s.includes('върн')) return 'bg-secondary';
+  return 'bg-warning text-dark'; // pending
+}
+
 // ─── Orders table ────────────────────────────────────────────
 
 async function loadOrders() {
-  const tbody = document.getElementById('orders-table-body');
   try {
     const { data: orders, error } = await supabase
       .from('orders')
       .select('*')
-      .order('order_date', { ascending: false })
-      .limit(50);
+      .order('order_date', { ascending: false });
 
     if (error) throw error;
 
-    if (!orders || orders.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Няма поръчки</td></tr>';
+    if (!orders) {
+      orders = [];
+    }
+
+    // Split orders into different categories
+    const currentOrders = orders.filter(o => {
+      const status = o.order_status?.current_status;
+      return status !== 'Доставена' && status !== 'Отказана' && status !== 'Върната';
+    });
+    const pendingOrders = orders.filter(o => o.order_status?.current_status === 'Чакаща');
+    const confirmedOrders = orders.filter(o => o.order_status?.current_status === 'Потвърдена');
+    const processingOrders = orders.filter(o => o.order_status?.current_status === 'В обработка');
+    const shippedOrders = orders.filter(o => o.order_status?.current_status === 'Изпратена');
+    const deliveredOrders = orders.filter(o => o.order_status?.current_status === 'Доставена');
+    const cancelledOrders = orders.filter(o => o.order_status?.current_status === 'Отказана');
+    const returnedOrders = orders.filter(o => o.order_status?.current_status === 'Върната');
+
+    // Load all order tabs
+    loadOrdersTable('orders-table-body', currentOrders, true);
+    loadOrdersTable('orders-pending-table-body', pendingOrders, false);
+    loadOrdersTable('orders-confirmed-table-body', confirmedOrders, false);
+    loadOrdersTable('orders-processing-table-body', processingOrders, false);
+    loadOrdersTable('orders-shipped-table-body', shippedOrders, false);
+    loadOrdersTable('orders-delivered-table-body', deliveredOrders, false);
+    loadOrdersTable('orders-cancelled-table-body', cancelledOrders, false);
+    loadOrdersTable('orders-returned-table-body', returnedOrders, false);
+  } catch (err) {
+    console.error('Error loading orders:', err);
+    document.getElementById('orders-table-body').innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Грешка при зареждане</td></tr>';
+  }
+}
+
+function loadOrdersTable(tableBodyId, orders, showActions) {
+  const tbody = document.getElementById(tableBodyId);
+
+  if (!orders || orders.length === 0) {
+    const colspan = showActions ? 8 : 6;
+    tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center text-muted py-4">Няма поръчки</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = orders.map((o) => {
+    const extra = o.order_extra || {};
+    const items = extra.items || [];
+    const address = extra.address || {};
+    const orderDate = o.order_date ? new Date(o.order_date).toLocaleDateString('bg-BG', {
+      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    }) : '–';
+    const currentStatus = o.order_status?.current_status || 'Чакаща';
+    const badgeClass = getOrderStatusBadgeClass(currentStatus);
+    const total = ((o.price || 0) - (o.discount || 0)).toFixed(2);
+    const notes = o.short_description || extra.notes || '';
+
+    // Build items summary
+    const itemsSummary = items.length > 0
+      ? items.map(i => `${i.name} x${i.quantity}`).join(', ')
+      : '–';
+
+    // Address summary
+    const addressSummary = address.street
+      ? `${address.street}, ${address.city || ''}`
+      : '–';
+
+    // Status dropdown options (only for current orders)
+    const statusSection = showActions ? `
+      <td>
+        <div class="d-flex gap-1 align-items-center">
+          <select class="form-select form-select-sm order-status-select" data-order-id="${o.order_id}" style="width: 140px; font-size: 0.8rem;">
+            ${ORDER_STATUSES.map(s =>
+              `<option value="${s}" ${s === currentStatus ? 'selected' : ''}>${s}</option>`
+            ).join('')}
+          </select>
+          <button class="btn btn-outline-success btn-sm save-status-btn" data-order-id="${o.order_id}" title="Запази статус">
+            <i class="bi bi-check-lg"></i>
+          </button>
+        </div>
+      </td>
+      <td>
+        <button class="btn btn-sm rounded-pill toggle-done-btn" style="${o.order_done ? 'background-color: var(--primary-main); color: white;' : 'background-color: #999; color: white;'}" data-order-id="${o.order_id}" data-done="${o.order_done}" title="${o.order_done ? 'Завършена' : 'Маркирай като завършена'}">
+          <i class="bi ${o.order_done ? 'bi-check-circle-fill' : 'bi-circle'}"></i>
+        </button>
+      </td>
+    ` : '';
+
+    return `
+      <tr data-order-id="${o.order_id}">
+        <td><strong>#${o.order_id}</strong></td>
+        <td>${o.user_id}</td>
+        <td>
+          <small title="${itemsSummary}" style="max-width: 200px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${itemsSummary}
+          </small>
+        </td>
+        <td><strong class="text-success">${total} лв.</strong></td>
+        <td><small>${orderDate}</small></td>
+        <td><span class="badge ${badgeClass}">${currentStatus}</span></td>
+        ${statusSection}
+      </tr>
+    `;
+  }).join('');
+
+  // Only attach handlers if showing actions
+  if (showActions) {
+    attachOrderHandlers(orders);
+  }
+}
+
+function attachOrderHandlers(orders) {
+  // Make entire row clickable to view order details
+  document.querySelectorAll('#orders-table-body tr').forEach(row => {
+    row.style.cursor = 'pointer';
+    row.addEventListener('click', (e) => {
+      // Don't open details if clicking on buttons or selects
+      if (e.target.closest('button') || e.target.closest('select')) {
+        return;
+      }
+      
+      const orderId = parseInt(row.dataset.orderId);
+      const order = orders.find(o => o.order_id === orderId);
+      if (order) showOrderDetailModal(order);
+    });
+  });
+
+  // Save status buttons
+  document.querySelectorAll('.save-status-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const orderId = parseInt(btn.dataset.orderId);
+      const select = document.querySelector(`.order-status-select[data-order-id="${orderId}"]`);
+      const newStatus = select.value;
+      await updateOrderStatus(orderId, newStatus, orders);
+    });
+  });
+
+  // Toggle done buttons
+  document.querySelectorAll('.toggle-done-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const orderId = parseInt(btn.dataset.orderId);
+      const currentDone = btn.dataset.done === 'true';
+      await toggleOrderDone(orderId, !currentDone);
+    });
+  });
+}
+
+async function updateOrderStatus(orderId, newStatus, orders) {
+  try {
+    const order = orders.find(o => o.order_id === orderId);
+    if (!order) return;
+
+    const now = new Date().toISOString();
+    const currentOrderStatus = order.order_status || { current_status: 'Чакаща', history: [] };
+    const history = currentOrderStatus.history || [];
+
+    // Don't add duplicate entry if status hasn't changed
+    if (currentOrderStatus.current_status === newStatus) {
+      toast.info('Статусът не е променен');
       return;
     }
 
-    tbody.innerHTML = orders.map((o) => {
-      const productName = o.short_description?.name || '–';
-      const orderDate = o.order_date ? new Date(o.order_date).toLocaleDateString('bg-BG') : '–';
-      const status = o.order_done
-        ? '<span class="badge bg-success">Завършена</span>'
-        : '<span class="badge bg-warning text-dark">В процес</span>';
-      const price = o.price != null ? `${Number(o.price).toFixed(2)} лв.` : '–';
+    history.push({
+      status: newStatus,
+      date: now,
+      note: `Статусът е променен от "${currentOrderStatus.current_status}" на "${newStatus}"`
+    });
 
-      return `
-        <tr>
-          <td>#${o.order_id}</td>
-          <td>${o.user_id}</td>
-          <td>${productName}</td>
-          <td>${price}</td>
-          <td>${orderDate}</td>
-          <td>${status}</td>
-        </tr>
-      `;
-    }).join('');
+    const updatedStatus = {
+      current_status: newStatus,
+      history
+    };
+
+    // Auto-set order_done if delivered
+    const isDone = newStatus === 'Доставена';
+
+    const { error } = await supabase
+      .from('orders')
+      .update({
+        order_status: updatedStatus,
+        order_done: isDone || order.order_done
+      })
+      .eq('order_id', orderId);
+
+    if (error) throw error;
+
+    toast.success(`Статусът на поръчка #${orderId} е променен на "${newStatus}"`);
+    await loadOrders();
+    await loadStats();
   } catch (err) {
-    console.error('Error loading orders:', err);
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Грешка при зареждане</td></tr>';
+    console.error('Error updating order status:', err);
+    toast.error('Грешка при промяна на статуса');
   }
+}
+
+async function toggleOrderDone(orderId, done) {
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .update({ order_done: done })
+      .eq('order_id', orderId);
+
+    if (error) throw error;
+
+    toast.success(done ? `Поръчка #${orderId} е маркирана като завършена` : `Поръчка #${orderId} е отбелязана като незавършена`);
+    await loadOrders();
+    await loadStats();
+  } catch (err) {
+    console.error('Error toggling order done:', err);
+    toast.error('Грешка при промяна на статуса');
+  }
+}
+
+function showOrderDetailModal(order) {
+  const extra = order.order_extra || {};
+  const items = extra.items || [];
+  const address = extra.address || {};
+  const notes = order.short_description || extra.notes || '–';
+  const history = order.order_status?.history || [];
+  const total = ((order.price || 0) - (order.discount || 0)).toFixed(2);
+
+  const itemsHTML = items.map(i => `
+    <tr>
+      <td>${i.name}</td>
+      <td class="text-center">${i.quantity}</td>
+      <td class="text-end">${Number(i.unit_price).toFixed(2)} лв.</td>
+      <td class="text-end">${i.unit_discount != null ? Number(i.unit_discount).toFixed(2) + ' лв.' : '–'}</td>
+      <td class="text-end fw-bold">${Number(i.line_total).toFixed(2)} лв.</td>
+    </tr>
+  `).join('');
+
+  const historyHTML = history.map(h => {
+    const d = new Date(h.date).toLocaleDateString('bg-BG', {
+      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+    return `<li class="list-group-item d-flex justify-content-between"><span><strong>${h.status}</strong> ${h.note ? `<small class="text-muted">— ${h.note}</small>` : ''}</span><small class="text-muted">${d}</small></li>`;
+  }).join('');
+
+  // Create or reuse modal
+  let modalEl = document.getElementById('orderDetailModal');
+  if (!modalEl) {
+    modalEl = document.createElement('div');
+    modalEl.id = 'orderDetailModal';
+    modalEl.className = 'modal fade';
+    modalEl.tabIndex = -1;
+    document.body.appendChild(modalEl);
+  }
+
+  modalEl.innerHTML = `
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content rounded-4">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-receipt"></i> Поръчка #${order.order_id}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <strong>Потребител ID:</strong> ${order.user_id}<br>
+              <strong>Дата:</strong> ${new Date(order.order_date).toLocaleDateString('bg-BG', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}<br>
+              <strong>Статус:</strong> <span class="badge ${getOrderStatusBadgeClass(order.order_status?.current_status)}">${order.order_status?.current_status || '–'}</span><br>
+              <strong>Завършена:</strong> ${order.order_done ? '<i class="bi bi-check-circle-fill text-success"></i> Да' : '<i class="bi bi-circle text-muted"></i> Не'}
+            </div>
+            <div class="col-md-6">
+              <strong>Адрес:</strong> ${address.street || '–'}, ${address.city || ''} ${address.postal_code || ''}<br>
+              ${address.phone ? `<strong>Телефон:</strong> ${address.phone}<br>` : ''}
+              <strong>Бележки:</strong> ${notes}<br>
+              <strong>Обща сума:</strong> <span class="text-success fw-bold">${total} лв.</span>
+              ${order.discount ? `<br><strong>Отстъпка:</strong> <span class="text-danger">-${Number(order.discount).toFixed(2)} лв.</span>` : ''}
+            </div>
+          </div>
+
+          ${items.length > 0 ? `
+          <h6 class="mt-3 mb-2">Продукти</h6>
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered">
+              <thead class="table-light">
+                <tr><th>Продукт</th><th class="text-center">Бройки</th><th class="text-end">Цена</th><th class="text-end">Отстъпка</th><th class="text-end">Общо</th></tr>
+              </thead>
+              <tbody>${itemsHTML}</tbody>
+            </table>
+          </div>` : ''}
+
+          ${history.length > 0 ? `
+          <h6 class="mt-3 mb-2">История на статуса</h6>
+          <ul class="list-group list-group-flush">${historyHTML}</ul>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+
+  const modal = new bootstrap.Modal(modalEl);
+  modal.show();
 }
 
 // ─── Groups table ────────────────────────────────────────────
@@ -1151,20 +1805,43 @@ function initializeTabListeners() {
   if (usersTab) {
     usersTab.addEventListener('shown.bs.tab', () => {
       loadUsers();
+      loadStats(); // Refresh stats when switching to users tab
     });
   }
   if (productsTab) {
     productsTab.addEventListener('shown.bs.tab', () => {
       loadProducts();
       initializeProductForm();
+      loadStats(); // Refresh stats when switching to products tab
     });
   }
   if (ordersTab) {
-    ordersTab.addEventListener('shown.bs.tab', () => loadOrders());
+    ordersTab.addEventListener('shown.bs.tab', () => {
+      loadOrders();
+      loadStats(); // Refresh stats when switching to orders tab
+    });
   }
   if (groupsTab) {
     groupsTab.addEventListener('shown.bs.tab', () => {
       loadGroups();
+      loadStats(); // Refresh stats when switching to groups tab
+    });
+  }
+
+  // Handle mobile orders dropdown
+  const ordersTabSelect = document.getElementById('orders-tab-select');
+  if (ordersTabSelect) {
+    ordersTabSelect.addEventListener('change', (e) => {
+      const targetPanelId = e.target.value;
+      // Hide all order panels
+      document.querySelectorAll('#ordersTabContent .tab-pane').forEach(panel => {
+        panel.classList.remove('show', 'active');
+      });
+      // Show selected panel
+      const targetPanel = document.getElementById(targetPanelId);
+      if (targetPanel) {
+        targetPanel.classList.add('show', 'active');
+      }
     });
   }
 }

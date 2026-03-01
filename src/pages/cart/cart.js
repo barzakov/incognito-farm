@@ -1,9 +1,24 @@
-import { supabase } from '../../lib/supabaseClient.js';
+import { supabase, fetchCurrentUserProfile } from '../../lib/supabaseClient.js';
 import { loadComponents } from '../../lib/components.js';
 import { toast } from '../../lib/toast.js';
 
 // Cart stored in localStorage (for now, until we implement database cart)
 const CART_STORAGE_KEY = 'incognito_farm_cart';
+
+// Order status definitions
+const ORDER_STATUSES = {
+  PENDING: 'Чакаща',
+  CONFIRMED: 'Потвърдена',
+  PROCESSING: 'В обработка',
+  SHIPPED: 'Изпратена',
+  DELIVERED: 'Доставена',
+  CANCELLED: 'Отказана',
+  RETURNED: 'Върната',
+};
+
+// Cached product data for checkout
+let cachedCartProducts = [];
+let selectedAddressId = null;
 
 // Get cart from localStorage
 function getCart() {
@@ -22,6 +37,21 @@ function saveCart(cart) {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
   } catch (error) {
     console.error('Error saving cart:', error);
+  }
+}
+
+// Update cart badge in header
+function updateCartBadge() {
+  const cart = getCart();
+  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const badge = document.getElementById('cart-badge');
+  if (badge) {
+    if (totalItems > 0) {
+      badge.textContent = totalItems;
+      badge.classList.remove('d-none');
+    } else {
+      badge.classList.add('d-none');
+    }
   }
 }
 
@@ -60,6 +90,7 @@ async function loadCartItems() {
       return product ? { ...product, quantity: cartItem.quantity } : null;
     }).filter(item => item !== null);
 
+    cachedCartProducts = cartItems;
     displayCartItems(cartItems);
     updateCartSummary(cartItems);
   } catch (error) {
@@ -198,6 +229,7 @@ function updateQuantity(productId, change) {
     }
     
     saveCart(cart);
+    updateCartBadge();
     loadCartItems();
   }
 }
@@ -207,41 +239,262 @@ function removeFromCart(productId) {
   const cart = getCart();
   const updatedCart = cart.filter(item => item.productId !== productId);
   saveCart(updatedCart);
+  updateCartBadge();
   toast.success('Продуктът е премахнат от каруцата');
   loadCartItems();
 }
 
-// Checkout
-function handleCheckout() {
-  const cart = getCart();
-  
-  if (!cart || cart.length === 0) {
-    toast.error('Каруцата е празна');
+// ─── Checkout Flow ───────────────────────────────────────────
+
+async function openCheckoutModal() {
+  // Check if user is logged in
+  const profile = await fetchCurrentUserProfile();
+  if (!profile) {
+    toast.error('Трябва да влезете в профила си, за да завършите поръчката');
+    setTimeout(() => { window.location.href = '/auth/login/'; }, 1500);
     return;
   }
 
-  // Check if user is logged in
-  supabase.auth.getUser().then(({ data: { user } }) => {
-    if (!user) {
-      toast.error('Трябва да влезете, за да завършите поръчката');
-      setTimeout(() => {
-        window.location.href = '/auth/login/';
-      }, 1500);
+  selectedAddressId = null;
+  document.getElementById('checkout-notes').value = '';
+  
+  // Remove old event listener and clone button to clear listeners
+  const confirmBtn = document.getElementById('confirm-checkout-btn');
+  const newConfirmBtn = confirmBtn.cloneNode(true);
+  confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+  newConfirmBtn.disabled = true;
+  
+  // Add fresh event listener to cloned button
+  newConfirmBtn.addEventListener('click', confirmCheckout);
+
+  // Populate order summary
+  populateCheckoutSummary();
+
+  // Load user addresses
+  await loadCheckoutAddresses(profile.user_id);
+
+  const modal = new bootstrap.Modal(document.getElementById('checkoutModal'));
+  modal.show();
+}
+
+function populateCheckoutSummary() {
+  const listEl = document.getElementById('checkout-items-list');
+  let totalPrice = 0;
+  let totalDiscount = 0;
+
+  listEl.innerHTML = cachedCartProducts.map(item => {
+    const name = item.description?.name || 'Продукт';
+    const price = item.price != null ? Number(item.price) : 0;
+    const discountedPrice = item.discount != null ? Number(item.discount) : null;
+    const finalPrice = discountedPrice || price;
+    const lineTotal = finalPrice * item.quantity;
+    totalPrice += price * item.quantity;
+    if (discountedPrice) {
+      totalDiscount += (price - discountedPrice) * item.quantity;
+    }
+
+    return `
+      <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+        <div>
+          <span class="fw-semibold">${name}</span>
+          <span class="text-muted ms-2">x${item.quantity}</span>
+        </div>
+        <span>${lineTotal.toFixed(2)} лв.</span>
+      </div>
+    `;
+  }).join('');
+
+  const finalTotal = totalPrice - totalDiscount;
+  document.getElementById('checkout-total').textContent = `${finalTotal.toFixed(2)} лв.`;
+
+  const discountRow = document.getElementById('checkout-discount-row');
+  if (totalDiscount > 0) {
+    discountRow.style.display = '';
+    discountRow.classList.add('d-flex');
+    document.getElementById('checkout-discount').textContent = `-${totalDiscount.toFixed(2)} лв.`;
+  } else {
+    discountRow.style.display = 'none !important';
+    discountRow.classList.remove('d-flex');
+  }
+}
+
+async function loadCheckoutAddresses(userId) {
+  const container = document.getElementById('checkout-address-list');
+  try {
+    const { data: addresses, error } = await supabase
+      .from('addresses')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    if (!addresses || addresses.length === 0) {
+      container.innerHTML = `
+        <div class="alert alert-warning mb-0">
+          <i class="bi bi-exclamation-triangle"></i> Нямате запазени адреси. Моля, добавете адрес от профила си.
+        </div>
+      `;
       return;
     }
 
-    // TODO: Implement checkout process (create order, clear cart, redirect to success page)
-    toast.info('Функционалността за поръчка скоро ще бъде налична');
-  });
+    container.innerHTML = `
+      <div class="address-radio-group">
+        ${addresses.map(addr => {
+          const a = addr.address || {};
+          const isDefault = a.is_default || false;
+          return `
+            <div class="form-check" data-address-id="${addr.address_id}">
+              <input class="form-check-input" type="radio" name="checkoutAddress" id="addr-${addr.address_id}" value="${addr.address_id}" ${isDefault ? 'checked' : ''}>
+              <label class="form-check-label" for="addr-${addr.address_id}">
+                <div>
+                  <strong>${a.street || '-'}</strong>, ${a.city || '-'} ${a.postal_code || ''}
+                  ${a.phone ? `<br><small class="text-muted"><i class="bi bi-telephone"></i> ${a.phone}</small>` : ''}
+                  ${isDefault ? '<span class="badge bg-success ms-2">По подразбиране</span>' : ''}
+                </div>
+              </label>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    // Attach radio change handlers
+    container.querySelectorAll('input[name="checkoutAddress"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        selectedAddressId = parseInt(radio.value);
+        document.getElementById('confirm-checkout-btn').disabled = false;
+      });
+    });
+
+    // Auto-select default address
+    const defaultAddr = addresses.find(a => a.address?.is_default);
+    if (defaultAddr) {
+      selectedAddressId = defaultAddr.address_id;
+      document.getElementById('confirm-checkout-btn').disabled = false;
+    }
+  } catch (err) {
+    console.error('Error loading addresses:', err);
+    container.innerHTML = '<div class="alert alert-danger mb-0">Грешка при зареждане на адреси</div>';
+  }
+}
+
+async function confirmCheckout() {
+  const confirmBtn = document.getElementById('confirm-checkout-btn');
+  confirmBtn.disabled = true;
+  confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Обработване...';
+
+  try {
+    const profile = await fetchCurrentUserProfile();
+    if (!profile) throw new Error('Не сте влезли в профила си');
+
+    const cart = getCart();
+    if (!cart || cart.length === 0) throw new Error('Каруцата е празна');
+    if (!selectedAddressId) throw new Error('Моля, изберете адрес за доставка');
+
+    // Get the selected address data
+    const { data: addressData, error: addrError } = await supabase
+      .from('addresses')
+      .select('*')
+      .eq('address_id', selectedAddressId)
+      .single();
+
+    if (addrError) throw addrError;
+
+    // Calculate totals
+    let totalPrice = 0;
+    let totalDiscount = 0;
+    const orderItems = cachedCartProducts.map(item => {
+      const price = item.price != null ? Number(item.price) : 0;
+      const discountedPrice = item.discount != null ? Number(item.discount) : null;
+      const lineTotal = price * item.quantity;
+      totalPrice += lineTotal;
+      if (discountedPrice) {
+        totalDiscount += (price - discountedPrice) * item.quantity;
+      }
+
+      return {
+        product_id: item.product_id,
+        name: item.description?.name || 'Продукт',
+        brief_info: item.description?.brief_info || '',
+        quantity: item.quantity,
+        unit_price: price,
+        unit_discount: discountedPrice,
+        line_total: discountedPrice ? discountedPrice * item.quantity : lineTotal,
+      };
+    });
+
+    const notes = document.getElementById('checkout-notes').value.trim();
+    const now = new Date().toISOString();
+
+    // Build order_status with history
+    const orderStatus = {
+      current_status: ORDER_STATUSES.PENDING,
+      history: [
+        { status: ORDER_STATUSES.PENDING, date: now, note: 'Поръчката е създадена' }
+      ]
+    };
+
+    // Build short_description for quick display
+    const shortDescription = notes || null;
+
+    // Build order_extra with items, address and notes
+    const orderExtra = {
+      items: orderItems,
+      address: addressData.address,
+      address_id: selectedAddressId,
+      notes: notes || null,
+    };
+
+    // Create order
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        user_id: profile.user_id,
+        price: totalPrice,
+        discount: totalDiscount > 0 ? totalDiscount : null,
+        short_description: shortDescription,
+        order_status: orderStatus,
+        order_done: false,
+        order_date: now,
+        order_extra: orderExtra,
+        order_archived: false,
+        order_user_delete: false,
+      })
+      .select()
+      .single();
+
+    if (orderError) throw orderError;
+
+    // Clear cart
+    saveCart([]);
+    updateCartBadge();
+
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('checkoutModal'));
+    modal.hide();
+
+    toast.success(`Поръчка #${order.order_id} е създадена успешно!`);
+
+    // Reload cart (will show empty)
+    setTimeout(() => loadCartItems(), 500);
+
+  } catch (err) {
+    console.error('Error creating order:', err);
+    toast.error(err.message || 'Грешка при създаване на поръчката');
+  } finally {
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = '<i class="bi bi-check-circle"></i> Потвърди поръчката';
+  }
 }
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', async () => {
   await loadComponents();
   await loadCartItems();
+  updateCartBadge();
 
-  // Checkout button
-  document.getElementById('checkout-btn').addEventListener('click', handleCheckout);
+  // Checkout button opens modal
+  document.getElementById('checkout-btn').addEventListener('click', openCheckoutModal);
 });
 
 // Export functions for use in other pages

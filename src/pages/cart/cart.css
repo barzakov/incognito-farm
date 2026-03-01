@@ -209,3 +209,88 @@
     justify-content: center;
   }
 }
+
+/* Checkout Modal - Same size as admin product modals */
+#checkoutModal .modal-dialog {
+  width: 70vw;
+  max-width: 70vw;
+  height: 70vh;
+  margin: 15vh 15vw;
+}
+
+#checkoutModal .modal-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#checkoutModal .modal-header,
+#checkoutModal .modal-footer {
+  flex-shrink: 0;
+}
+
+#checkoutModal .modal-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Address selection - same style as size-radio-group in admin */
+.address-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.address-radio-group .form-check {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.address-radio-group .form-check:hover {
+  background-color: #f8f9fa;
+}
+
+.address-radio-group .form-check-input {
+  margin: 0;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+
+.address-radio-group .form-check-label {
+  font-weight: 500;
+  cursor: pointer;
+  margin: 0;
+  flex: 1;
+}
+
+.address-radio-group .form-check:has(.form-check-input:checked) {
+  border-color: var(--bs-success) !important;
+  background-color: rgba(46, 125, 50, 0.05);
+}
+
+.address-radio-group .form-check:has(.form-check-input:checked) .form-check-label {
+  color: var(--primary-color);
+}
+
+/* Responsive checkout modal on mobile */
+@media (max-width: 768px) {
+  #checkoutModal .modal-dialog {
+    width: 90vw;
+    max-width: 90vw;
+    height: auto;
+    margin: 2rem auto;
+  }
+  
+  #checkoutModal .modal-content {
+    height: auto;
+  }
+}

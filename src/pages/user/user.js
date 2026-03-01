@@ -95,6 +95,12 @@ async function initializePage() {
   await loadAddresses();
   await loadOrders();
   setupEventListeners();
+
+  // Auto-switch to section from URL param (e.g. ?section=addresses)
+  const urlSection = new URLSearchParams(window.location.search).get('section');
+  if (urlSection) {
+    switchSection(urlSection);
+  }
 }
 
 // ─── Populate Profile ────────────────────────────────────────
@@ -197,6 +203,26 @@ cancelAddressBtn().addEventListener('click', () => {
   addAddressBtn().classList.remove('d-none');
 });
 
+// Clear is_default on all other addresses for the current user
+async function clearOtherDefaults(excludeAddressId = null) {
+  const { data: allAddresses, error } = await supabase
+    .from('addresses')
+    .select('*')
+    .eq('user_id', currentUser.user_id);
+
+  if (error) throw error;
+
+  for (const addr of allAddresses) {
+    if (excludeAddressId && addr.address_id === excludeAddressId) continue;
+    if (addr.address?.is_default) {
+      await supabase
+        .from('addresses')
+        .update({ address: { ...addr.address, is_default: false } })
+        .eq('address_id', addr.address_id);
+    }
+  }
+}
+
 addressForm().addEventListener('submit', async (e) => {
   e.preventDefault();
 
@@ -212,6 +238,11 @@ addressForm().addEventListener('submit', async (e) => {
 
     console.log('Adding new address...');
     const isDefault = addressIsDefault().checked;
+
+    // If setting as default, clear other defaults first
+    if (isDefault) {
+      await clearOtherDefaults();
+    }
 
     const addressData = {
       street: addressStreet().value,
@@ -250,7 +281,8 @@ async function loadAddresses() {
     const { data, error } = await supabase
       .from('addresses')
       .select('*')
-      .eq('user_id', currentUser.user_id);
+      .eq('user_id', currentUser.user_id)
+      .order('address_id', { ascending: true });
 
     if (error) throw error;
 
@@ -392,9 +424,15 @@ async function openEditAddress(addr) {
 }
 
 async function updateAddress() {
-  const addressId = addressForm().dataset.editId;
+  const addressId = parseInt(addressForm().dataset.editId);
+  const isDefault = addressIsDefault().checked;
   
   try {
+    // If setting as default, clear other defaults first
+    if (isDefault) {
+      await clearOtherDefaults(addressId);
+    }
+
     const addressData = {
       street: addressStreet().value,
       city: addressCity().value,
@@ -402,7 +440,7 @@ async function updateAddress() {
       phone: addressPhone().value,
       email: addressEmail().value,
       extra_info: addressExtra().value || null,
-      is_default: addressIsDefault().checked,
+      is_default: isDefault,
     };
 
     const { error } = await supabase
@@ -465,11 +503,43 @@ function createOrderCard(order) {
   const card = document.createElement('div');
   card.className = 'order-card';
 
-  const orderDate = new Date(order.order_date).toLocaleDateString('bg-BG');
-  const short = order.short_description || {};
-  const status = order.order_status?.current_status || 'Обработка';
+  const orderDate = new Date(order.order_date).toLocaleDateString('bg-BG', {
+    year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+  const status = order.order_status?.current_status || 'Чакаща';
   const statusClass = getStatusClass(status);
   const total = (order.price || 0) - (order.discount || 0);
+  const extra = order.order_extra || {};
+  const items = extra.items || [];
+  const address = extra.address || {};
+  const notes = order.short_description || extra.notes || null;
+  const history = order.order_status?.history || [];
+
+  // Items list
+  const itemsHTML = items.map(item => `
+    <div class="d-flex justify-content-between py-1">
+      <span>${item.name} <small class="text-muted">x${item.quantity}</small></span>
+      <span>${Number(item.line_total).toFixed(2)} лв.</span>
+    </div>
+  `).join('');
+
+  // Status timeline
+  const timelineHTML = history.map((h, i) => {
+    const d = new Date(h.date).toLocaleDateString('bg-BG', {
+      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+    const isLast = i === history.length - 1;
+    return `
+      <div class="status-timeline-item ${isLast ? 'active' : ''}">
+        <div class="status-timeline-dot"></div>
+        <div class="status-timeline-content">
+          <strong>${h.status}</strong>
+          <small class="text-muted d-block">${d}</small>
+          ${h.note ? `<small class="text-muted">${h.note}</small>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
 
   card.innerHTML = `
     <div class="order-header">
@@ -478,33 +548,98 @@ function createOrderCard(order) {
     </div>
     <div class="order-details">
       <div class="order-detail-item">
-        <span class="order-detail-label">Продукт</span>
-        <span class="order-detail-value">${short.name || '-'}</span>
-      </div>
-      <div class="order-detail-item">
         <span class="order-detail-label">Дата</span>
         <span class="order-detail-value">${orderDate}</span>
       </div>
       <div class="order-detail-item">
-        <span class="order-detail-label">Цена</span>
-        <span class="order-detail-value">${total.toFixed(2)} лв.</span>
+        <span class="order-detail-label">Обща сума</span>
+        <span class="order-detail-value fw-bold text-success">${total.toFixed(2)} лв.</span>
       </div>
       ${order.discount ? `<div class="order-detail-item">
-        <span class="order-detail-label">Намаление</span>
-        <span class="order-detail-value">${order.discount.toFixed(2)} лв.</span>
+        <span class="order-detail-label">Отстъпка</span>
+        <span class="order-detail-value text-danger">-${Number(order.discount).toFixed(2)} лв.</span>
       </div>` : ''}
     </div>
+
+    ${items.length > 0 ? `
+    <div class="order-items-section mt-3">
+      <h6 class="mb-2"><i class="bi bi-list-check"></i> Продукти</h6>
+      <div class="order-items-list border rounded-3 p-2">
+        ${itemsHTML}
+      </div>
+    </div>` : ''}
+
+    ${address.street ? `
+    <div class="order-address-section mt-3">
+      <h6 class="mb-1"><i class="bi bi-geo-alt"></i> Адрес за доставка</h6>
+      <small class="text-muted">${address.street}, ${address.city || ''} ${address.postal_code || ''}</small>
+      ${address.phone ? `<br><small class="text-muted"><i class="bi bi-telephone"></i> ${address.phone}</small>` : ''}
+    </div>` : ''}
+
+    ${notes ? `
+    <div class="order-notes-section mt-3">
+      <h6 class="mb-1"><i class="bi bi-chat-left-text"></i> Бележки</h6>
+      <small class="text-muted">${notes}</small>
+    </div>` : ''}
+
+    ${history.length > 0 ? `
+    <details class="mt-3">
+      <summary class="fw-semibold" style="cursor: pointer;"><i class="bi bi-clock-history"></i> История на статуса</summary>
+      <div class="status-timeline mt-2">
+        ${timelineHTML}
+      </div>
+    </details>` : ''}
+
+    <div class="order-actions mt-3 pt-2 border-top">
+      <button class="btn btn-outline-danger btn-sm archive-order-btn" data-order-id="${order.order_id}">
+        <i class="bi bi-trash"></i> Изтрий
+      </button>
+    </div>
   `;
+
+  // Attach archive handler
+  const archiveBtn = card.querySelector('.archive-order-btn');
+  if (archiveBtn) {
+    archiveBtn.addEventListener('click', () => archiveOrder(order.order_id, card));
+  }
 
   return card;
 }
 
+async function archiveOrder(orderId, cardElement) {
+  if (!confirm('Сигурни ли сте, че искате да изтриете тази поръчка?')) return;
+
+  try {
+    const { error } = await supabase
+      .from('orders')
+      .update({ order_user_delete: true })
+      .eq('order_id', orderId);
+
+    if (error) throw error;
+
+    cardElement.remove();
+    toast.success('Поръчката е премахната');
+
+    // Check if list is empty now
+    const remaining = ordersList().querySelectorAll('.order-card');
+    if (remaining.length === 0) {
+      ordersList().innerHTML = '<div class="text-center text-muted py-5"><p>Нямате поръчки</p></div>';
+    }
+  } catch (err) {
+    console.error('Error archiving order:', err);
+    toast.error('Грешка при изтриване на поръчката');
+  }
+}
+
 function getStatusClass(status) {
   if (!status) return 'pending';
-  const lower = status.toLowerCase();
-  if (lower.includes('завърш') || lower.includes('компл')) return 'completed';
-  if (lower.includes('отказ') || lower.includes('отмен')) return 'cancelled';
-  if (lower.includes('обработ') || lower.includes('процес')) return 'processing';
+  const s = status.toLowerCase();
+  if (s.includes('достав') || s.includes('завърш')) return 'completed';
+  if (s.includes('отказ') || s.includes('отмен')) return 'cancelled';
+  if (s.includes('върн')) return 'returned';
+  if (s.includes('изпрат')) return 'shipped';
+  if (s.includes('обработ') || s.includes('процес')) return 'processing';
+  if (s.includes('потвърд')) return 'confirmed';
   return 'pending';
 }
 

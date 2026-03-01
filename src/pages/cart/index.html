@@ -89,6 +89,59 @@
     </section>
   </main>
 
+  <!-- Checkout Modal -->
+  <div class="modal fade" id="checkoutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content rounded-4">
+        <div class="modal-header border-0">
+          <h5 class="modal-title"><i class="bi bi-bag-check"></i> Завършване на поръчката</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Order Items Summary -->
+          <div class="mb-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-list-check"></i> Продукти в поръчката</h6>
+            <div id="checkout-items-list" class="checkout-items-list"></div>
+            <div class="d-flex justify-content-between mt-3 pt-2 border-top">
+              <span class="fw-bold">Обща сума:</span>
+              <span class="fw-bold text-success fs-5" id="checkout-total">0.00 лв.</span>
+            </div>
+            <div class="d-flex justify-content-between" id="checkout-discount-row" style="display: none !important;">
+              <span class="text-muted">Отстъпка:</span>
+              <span class="text-danger" id="checkout-discount">0.00 лв.</span>
+            </div>
+          </div>
+
+          <!-- Address Selection -->
+          <div class="mb-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-geo-alt"></i> Адрес за доставка</h6>
+            <div id="checkout-address-list" class="mb-2">
+              <div class="text-center text-muted py-3">
+                <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                Зареждане на адреси...
+              </div>
+            </div>
+            <a href="/user/?section=addresses" class="btn btn-outline-success btn-sm">
+              <i class="bi bi-plus-circle"></i> Управление на адресите
+            </a>
+          </div>
+
+          <!-- User Notes -->
+          <div class="mb-3">
+            <h6 class="fw-bold mb-3"><i class="bi bi-chat-left-text"></i> Бележки към поръчката</h6>
+            <textarea class="form-control rounded-3" id="checkout-notes" rows="3" placeholder="Допълнителна информация за доставка, специални инструкции и т.н." maxlength="500"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Отказ</button>
+          <button type="button" class="btn btn-success rounded-pill px-4" id="confirm-checkout-btn" disabled>
+            <i class="bi bi-check-circle"></i> Потвърди поръчката
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Footer -->
   <div id="footer-container"></div>
 

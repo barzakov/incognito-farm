@@ -51,41 +51,28 @@
 
       <!-- Stats cards -->
       <div class="row g-3 mb-4">
-        <div class="col-md-4">
-          <div class="card border-0 shadow-sm rounded-4">
-            <div class="card-body d-flex align-items-center gap-3">
-              <div class="stat-icon bg-success bg-opacity-10 text-success rounded-3 p-3">
-                <i class="bi bi-people fs-4"></i>
+        <div class="col-md-6 col-lg-4">
+          <div class="card border-0 shadow-sm rounded-3 stat-card-small">
+            <div class="card-body d-flex align-items-center gap-2 py-2 px-3">
+              <div class="stat-icon-small bg-warning bg-opacity-10 text-warning rounded-2 p-2">
+                <i class="bi bi-clock-history fs-6"></i>
               </div>
               <div>
-                <p class="text-muted mb-0 small">Потребители</p>
-                <h4 class="mb-0" id="stat-users">–</h4>
+                <p class="text-muted mb-0" style="font-size: 0.8rem;">Поръчки чакащи</p>
+                <h5 class="mb-0 fw-bold" id="stat-waiting-orders">–</h5>
               </div>
             </div>
           </div>
         </div>
-        <div class="col-md-4">
-          <div class="card border-0 shadow-sm rounded-4">
-            <div class="card-body d-flex align-items-center gap-3">
-              <div class="stat-icon bg-primary bg-opacity-10 text-primary rounded-3 p-3">
-                <i class="bi bi-box-seam fs-4"></i>
+        <div class="col-md-6 col-lg-4">
+          <div class="card border-0 shadow-sm rounded-3 stat-card-small">
+            <div class="card-body d-flex align-items-center gap-2 py-2 px-3">
+              <div class="stat-icon-small bg-danger bg-opacity-10 text-danger rounded-2 p-2">
+                <i class="bi bi-exclamation-triangle fs-6"></i>
               </div>
               <div>
-                <p class="text-muted mb-0 small">Продукти</p>
-                <h4 class="mb-0" id="stat-products">–</h4>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card border-0 shadow-sm rounded-4">
-            <div class="card-body d-flex align-items-center gap-3">
-              <div class="stat-icon bg-warning bg-opacity-10 text-warning rounded-3 p-3">
-                <i class="bi bi-receipt fs-4"></i>
-              </div>
-              <div>
-                <p class="text-muted mb-0 small">Поръчки</p>
-                <h4 class="mb-0" id="stat-orders">–</h4>
+                <p class="text-muted mb-0" style="font-size: 0.8rem;">Продукти изтичащи (≤5 дни)</p>
+                <h5 class="mb-0 fw-bold" id="stat-expiring-products">–</h5>
               </div>
             </div>
           </div>
@@ -154,14 +141,14 @@
         <div class="tab-pane fade" id="products-panel" role="tabpanel">
           <div class="card border-0 shadow-sm rounded-4">
             <div class="card-body">
-              <div class="d-flex justify-content-between align-items-center mb-4">
+              <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                 <h5 class="card-title mb-0">Продукти</h5>
-                <div class="d-flex gap-2">
-                  <button type="button" class="btn btn-outline-success" id="force-expiry-check-btn">
-                    <i class="bi bi-hourglass-split"></i> Провери изтекли продукти
+                <div class="d-flex gap-2 flex-wrap">
+                  <button type="button" class="btn btn-outline-success btn-sm" id="force-expiry-check-btn">
+                    <i class="bi bi-hourglass-split"></i> <span class="d-none d-sm-inline">Провери изтекли продукти</span><span class="d-inline d-sm-none">Изтекли</span>
                   </button>
-                  <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">
-                    <i class="bi bi-plus-lg"></i> Добави продукт
+                  <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                    <i class="bi bi-plus-lg"></i> <span class="d-none d-sm-inline">Добави продукт</span><span class="d-inline d-sm-none">Добави</span>
                   </button>
                 </div>
               </div>
@@ -197,27 +184,272 @@
         <div class="tab-pane fade" id="orders-panel" role="tabpanel">
           <div class="card border-0 shadow-sm rounded-4">
             <div class="card-body">
-              <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                  <thead>
-                    <tr>
-                      <th>Поръчка #</th>
-                      <th>Потребител</th>
-                      <th>Продукт</th>
-                      <th>Цена</th>
-                      <th>Дата</th>
-                      <th>Статус</th>
-                    </tr>
-                  </thead>
-                  <tbody id="orders-table-body">
-                    <tr>
-                      <td colspan="6" class="text-center text-muted py-4">
-                        <div class="spinner-border spinner-border-sm text-success" role="status"></div>
-                        Зареждане...
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <!-- Orders sub-tabs (desktop) -->
+              <ul class="nav nav-tabs mb-4 d-none d-md-flex" id="ordersTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link active" id="orders-current-tab" data-bs-toggle="tab" data-bs-target="#orders-current-panel" type="button" role="tab">
+                    <i class="bi bi-clock-history"></i> Текущи поръчки
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="orders-pending-tab" data-bs-toggle="tab" data-bs-target="#orders-pending-panel" type="button" role="tab">
+                    <i class="bi bi-hourglass-split"></i> Чакаща
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="orders-confirmed-tab" data-bs-toggle="tab" data-bs-target="#orders-confirmed-panel" type="button" role="tab">
+                    <i class="bi bi-check"></i> Потвърдена
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="orders-processing-tab" data-bs-toggle="tab" data-bs-target="#orders-processing-panel" type="button" role="tab">
+                    <i class="bi bi-gear"></i> В обработка
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="orders-shipped-tab" data-bs-toggle="tab" data-bs-target="#orders-shipped-panel" type="button" role="tab">
+                    <i class="bi bi-truck"></i> Изпратена
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="orders-delivered-tab" data-bs-toggle="tab" data-bs-target="#orders-delivered-panel" type="button" role="tab">
+                    <i class="bi bi-check-circle"></i> Доставена
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="orders-cancelled-tab" data-bs-toggle="tab" data-bs-target="#orders-cancelled-panel" type="button" role="tab">
+                    <i class="bi bi-x-circle"></i> Отказана
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="orders-returned-tab" data-bs-toggle="tab" data-bs-target="#orders-returned-panel" type="button" role="tab">
+                    <i class="bi bi-arrow-counterclockwise"></i> Върната
+                  </button>
+                </li>
+              </ul>
+
+              <!-- Orders dropdown (mobile) -->
+              <div class="d-md-none mb-4">
+                <select class="form-select" id="orders-tab-select">
+                  <option value="orders-current-panel">Текущи поръчки</option>
+                  <option value="orders-pending-panel">Чакаща</option>
+                  <option value="orders-confirmed-panel">Потвърдена</option>
+                  <option value="orders-processing-panel">В обработка</option>
+                  <option value="orders-shipped-panel">Изпратена</option>
+                  <option value="orders-delivered-panel">Доставена</option>
+                  <option value="orders-cancelled-panel">Отказана</option>
+                  <option value="orders-returned-panel">Върната</option>
+                </select>
+              </div>
+
+              <!-- Orders current -->
+              <div class="tab-content" id="ordersTabContent">
+                <div class="tab-pane fade show active" id="orders-current-panel" role="tabpanel">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Поръчка</th>
+                          <th>Потребител</th>
+                          <th>Продукти</th>
+                          <th>Сума</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                          <th>Промяна на статус</th>
+                          <th>Маркирай като завършена</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orders-table-body">
+                        <tr>
+                          <td colspan="8" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                            Зареждане...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Orders pending -->
+                <div class="tab-pane fade" id="orders-pending-panel" role="tabpanel">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Поръчка</th>
+                          <th>Потребител</th>
+                          <th>Продукти</th>
+                          <th>Сума</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orders-pending-table-body">
+                        <tr>
+                          <td colspan="6" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                            Зареждане...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Orders confirmed -->
+                <div class="tab-pane fade" id="orders-confirmed-panel" role="tabpanel">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Поръчка</th>
+                          <th>Потребител</th>
+                          <th>Продукти</th>
+                          <th>Сума</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orders-confirmed-table-body">
+                        <tr>
+                          <td colspan="6" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                            Зареждане...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Orders processing -->
+                <div class="tab-pane fade" id="orders-processing-panel" role="tabpanel">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Поръчка</th>
+                          <th>Потребител</th>
+                          <th>Продукти</th>
+                          <th>Сума</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orders-processing-table-body">
+                        <tr>
+                          <td colspan="6" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                            Зареждане...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Orders shipped -->
+                <div class="tab-pane fade" id="orders-shipped-panel" role="tabpanel">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Поръчка</th>
+                          <th>Потребител</th>
+                          <th>Продукти</th>
+                          <th>Сума</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orders-shipped-table-body">
+                        <tr>
+                          <td colspan="6" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                            Зареждане...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="tab-pane fade" id="orders-delivered-panel" role="tabpanel">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Поръчка</th>
+                          <th>Потребител</th>
+                          <th>Продукти</th>
+                          <th>Сума</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orders-delivered-table-body">
+                        <tr>
+                          <td colspan="6" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                            Зареждане...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Orders cancelled -->
+                <div class="tab-pane fade" id="orders-cancelled-panel" role="tabpanel">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Поръчка</th>
+                          <th>Потребител</th>
+                          <th>Продукти</th>
+                          <th>Сума</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orders-cancelled-table-body">
+                        <tr>
+                          <td colspan="6" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                            Зареждане...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Orders returned -->
+                <div class="tab-pane fade" id="orders-returned-panel" role="tabpanel">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Поръчка</th>
+                          <th>Потребител</th>
+                          <th>Продукти</th>
+                          <th>Сума</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orders-returned-table-body">
+                        <tr>
+                          <td colspan="6" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                            Зареждане...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -311,6 +543,12 @@
             </div>
 
             <div class="mb-3">
+              <label for="product-expire" class="form-label">Срок на годност</label>
+              <input type="text" class="form-control" id="product-expire" placeholder="дд.мм.гггг (напр. 25.12.2026)">
+              <small class="form-text text-muted">Формат: ден.месец.година</small>
+            </div>
+
+            <div class="mb-3">
               <label for="product-discount" class="form-label">Отстъпка (лв.)</label>
               <input type="number" class="form-control" id="product-discount" step="0.01" min="0">
             </div>
@@ -357,15 +595,19 @@
             </div>
 
             <div class="mb-3">
-              <label for="product-expire" class="form-label">Срок на годност</label>
-              <input type="date" class="form-control" id="product-expire">
+              <label for="product-image" class="form-label">Добавяне на изображение</label>
+              <input type="file" class="form-control" id="product-image" accept="image/*">
+              <small class="text-muted">JPG, PNG, WebP (макс 5MB)</small>
+              <button type="button" class="btn btn-sm btn-success mt-2" id="add-product-image-btn">
+                <i class="bi bi-plus-circle"></i> Добави изображение
+              </button>
             </div>
 
             <div class="mb-3">
-              <label for="product-image" class="form-label">Изображение</label>
-              <input type="file" class="form-control" id="product-image" accept="image/*">
-              <small class="text-muted">Опционално: JPG, PNG, WebP (макс 5MB)</small>
-              <div id="product-image-preview" class="mt-2"></div>
+              <label class="form-label d-block">Изображения</label>
+              <div id="product-images-gallery" class="row g-2">
+                <div class="col-12 text-muted">Няма добавени изображения</div>
+              </div>
             </div>
           </div>
           <div class="modal-footer border-0">
@@ -417,19 +659,15 @@
             </div>
 
             <div class="mb-3">
-              <label for="edit-product-brief" class="form-label">Кратко описание</label>
-              <input type="text" class="form-control" id="edit-product-brief">
-            </div>
-
-            <div class="mb-3">
-              <label for="edit-product-info" class="form-label">Описание</label>
-              <textarea class="form-control" id="edit-product-info" rows="3"></textarea>
-            </div>
-
-            <div class="mb-3">
               <label for="edit-product-price" class="form-label">Цена (лв.) *</label>
               <input type="number" class="form-control" id="edit-product-price" step="0.01" min="0" required>
               <div class="invalid-feedback">Цената е задължителна</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="edit-product-expire" class="form-label">Срок на годност</label>
+              <input type="text" class="form-control" id="edit-product-expire" placeholder="дд.мм.гггг (напр. 25.12.2026)">
+              <small class="form-text text-muted">Формат: ден.месец.година</small>
             </div>
 
             <div class="mb-3">
@@ -479,15 +717,29 @@
             </div>
 
             <div class="mb-3">
-              <label for="edit-product-expire" class="form-label">Срок на годност</label>
-              <input type="date" class="form-control" id="edit-product-expire">
+              <label for="edit-product-brief" class="form-label">Кратко описание</label>
+              <input type="text" class="form-control" id="edit-product-brief">
             </div>
 
             <div class="mb-3">
-              <label for="edit-product-image" class="form-label">Изображение</label>
+              <label for="edit-product-info" class="form-label">Описание</label>
+              <textarea class="form-control" id="edit-product-info" rows="3"></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label for="edit-product-image" class="form-label">Добавяне на изображение</label>
               <input type="file" class="form-control" id="edit-product-image" accept="image/*">
-              <small class="text-muted">Опционално: JPG, PNG, WebP (макс 5MB)</small>
-              <div id="edit-product-image-preview" class="mt-2"></div>
+              <small class="text-muted">JPG, PNG, WebP (макс 5MB)</small>
+              <button type="button" class="btn btn-sm btn-success mt-2" id="add-edit-image-btn">
+                <i class="bi bi-plus-circle"></i> Добави изображение
+              </button>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label d-block">Изображения</label>
+              <div id="edit-product-images-gallery" class="row g-2">
+                <div class="col-12 text-muted">Няма добавени изображения</div>
+              </div>
             </div>
           </div>
           <div class="modal-footer border-0">
