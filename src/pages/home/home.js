@@ -82,39 +82,48 @@ async function loadDiscountCarousel() {
   if (!carousel) return;
 
   try {
-    // Fetch available products that have a discount (discount < price)
+    // Fetch available products and prioritize discounted ones.
+    // If discounted products are less than 3, fill with regular products.
     const { data: products, error } = await supabase
       .from('products')
       .select('*')
       .eq('availability', true)
-      .not('discount', 'is', null)
-      .order('discount', { ascending: true })
-      .limit(10);
+      .order('created_on', { ascending: false })
+      .limit(30);
 
     if (error) throw error;
 
-    // Sort by biggest saving (price - discount) descending
-    const sorted = (products || [])
+    // Discounted products sorted by biggest saving (price - discount)
+    const discounted = (products || [])
       .filter(p => p.price != null && p.discount != null && Number(p.discount) < Number(p.price))
       .sort((a, b) => (Number(b.price) - Number(b.discount)) - (Number(a.price) - Number(a.discount)));
 
-    discountedProducts = sorted;
+    const discountedIds = new Set(discounted.map(p => p.product_id));
+    const regular = (products || []).filter(p => !discountedIds.has(p.product_id));
 
-    if (sorted.length === 0) {
+    const minimumItems = 6;
+    const prioritizedProducts = discounted.length >= minimumItems
+      ? discounted
+      : [...discounted, ...regular].slice(0, Math.min((products || []).length, minimumItems));
+
+    discountedProducts = prioritizedProducts;
+
+    if (prioritizedProducts.length === 0) {
       carousel.innerHTML = `
         <div class="text-center text-muted py-5 w-100">
           <i class="bi bi-inbox fs-1"></i>
-          <p class="mt-3">Няма намалени продукти</p>
+          <p class="mt-3">Няма налични продукти</p>
         </div>`;
       return;
     }
 
-    carousel.innerHTML = sorted.map(p => {
+    carousel.innerHTML = prioritizedProducts.map(p => {
       const name = p.description?.name || 'Продукт';
       const brief = p.description?.brief_info || '';
-      const price = Number(p.price).toFixed(2);
-      const discounted = Number(p.discount).toFixed(2);
-      const savePct = Math.round(((p.price - p.discount) / p.price) * 100);
+      const hasDiscount = p.price != null && p.discount != null && Number(p.discount) < Number(p.price);
+      const price = p.price != null ? Number(p.price).toFixed(2) : null;
+      const discountedPrice = hasDiscount ? Number(p.discount).toFixed(2) : null;
+      const savePct = hasDiscount ? Math.round(((Number(p.price) - Number(p.discount)) / Number(p.price)) * 100) : 0;
 
       let img = '<span class="carousel-emoji">🌾</span>';
       if (p.images_location) {
@@ -124,14 +133,16 @@ async function loadDiscountCarousel() {
 
       return `
         <div class="carousel-card" data-product-id="${p.product_id}">
-          <div class="carousel-badge">-${savePct}%</div>
+          ${hasDiscount ? `<div class="carousel-badge">-${savePct}%</div>` : ''}
           <div class="carousel-card-image">${img}</div>
           <div class="carousel-card-body">
             <h5 class="carousel-card-title">${name}</h5>
             <p class="carousel-card-brief">${brief}</p>
             <div class="carousel-card-pricing">
-              <span class="old-price">${price} лв.</span>
-              <span class="new-price">${discounted} лв.</span>
+              ${hasDiscount
+    ? `<span class="old-price">${price} лв.</span>
+              <span class="new-price">${discountedPrice} лв.</span>`
+    : `<span class="new-price">${price ? `${price} лв.` : 'По запитване'}</span>`}
             </div>
           </div>
         </div>`;

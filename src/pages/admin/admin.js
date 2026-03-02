@@ -1085,7 +1085,7 @@ function getOrderStatusBadgeClass(status) {
 
 async function loadOrders() {
   try {
-    const { data: orders, error } = await supabase
+    let { data: orders, error } = await supabase
       .from('orders')
       .select('*')
       .order('order_date', { ascending: false });

@@ -68,7 +68,12 @@
               <label for="password" class="form-label">
                 <i class="bi bi-lock"></i> Парола
               </label>
-              <input type="password" class="form-control" id="password" name="password" required placeholder="••••••••">
+              <div class="input-group">
+                <input type="password" class="form-control" id="password" name="password" required placeholder="••••••••">
+                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
               <small class="form-text text-muted d-block mt-1">Минимум 6 символа, включително главна буква и цифра</small>
               <div class="invalid-feedback">Паролата е задължителна</div>
             </div>
@@ -77,7 +82,12 @@
               <label for="password-confirm" class="form-label">
                 <i class="bi bi-lock-fill"></i> Потвърди паролата
               </label>
-              <input type="password" class="form-control" id="password-confirm" name="password-confirm" required placeholder="••••••••">
+              <div class="input-group">
+                <input type="password" class="form-control" id="password-confirm" name="password-confirm" required placeholder="••••••••">
+                <button class="btn btn-outline-secondary" type="button" id="togglePasswordConfirm">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
               <div class="invalid-feedback">Паролите не съвпадат</div>
             </div>
 

@@ -1,7 +1,20 @@
-import { supabase, authenticateUser, fetchCurrentUserProfile } from '../../lib/supabaseClient.js';
+import { authenticateUser, fetchCurrentUserProfile, getSession } from '../../lib/supabaseClient.js';
 import { loadComponents } from '../../lib/components.js';
 import { toast } from '../../lib/toast.js';
 import { validateForm, isValidEmail } from '../../lib/formValidation.js';
+
+async function redirectIfAuthenticated() {
+  try {
+    const session = await getSession();
+    if (!session) return;
+
+    const profile = await fetchCurrentUserProfile();
+    const redirectTo = profile?.boss ? '/admin/' : '/';
+    window.location.replace(redirectTo);
+  } catch (error) {
+    console.error('Auth redirect check failed:', error);
+  }
+}
 
 // Handle login form submission
 function initializeLoginForm() {
@@ -60,5 +73,6 @@ function initializeLoginForm() {
 // Initialize page
 document.addEventListener('DOMContentLoaded', () => {
   loadComponents();
+  redirectIfAuthenticated();
   initializeLoginForm();
 });
