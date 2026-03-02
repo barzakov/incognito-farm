@@ -137,13 +137,28 @@
   border-bottom-color: var(--primary-lighter);
 }
 
-/* Tab pane display */
-.tab-pane {
-  display: none;
+/* Ensure orders sub-tab content container is properly laid out */
+#ordersTabContent {
+  position: relative;
 }
 
-.tab-pane.active {
-  display: block;
+/* Table responsive container fixes */
+.table-responsive {
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure table headers don't become sticky and overlap */
+.admin-main .table thead {
+  position: relative;
+  z-index: 0;
+}
+
+.admin-main .table thead th {
+  position: relative;
+  background-color: #fff;
 }
 
 /* Action buttons in tables */

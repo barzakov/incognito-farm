@@ -1099,13 +1099,13 @@ async function loadOrders() {
     // Split orders into different categories
     const currentOrders = orders.filter(o => {
       const status = o.order_status?.current_status;
-      return status !== 'Доставена' && status !== 'Отказана' && status !== 'Върната';
+      return !o.order_done && status !== 'Доставена' && status !== 'Отказана' && status !== 'Върната';
     });
-    const pendingOrders = orders.filter(o => o.order_status?.current_status === 'Чакаща');
-    const confirmedOrders = orders.filter(o => o.order_status?.current_status === 'Потвърдена');
-    const processingOrders = orders.filter(o => o.order_status?.current_status === 'В обработка');
-    const shippedOrders = orders.filter(o => o.order_status?.current_status === 'Изпратена');
-    const deliveredOrders = orders.filter(o => o.order_status?.current_status === 'Доставена');
+    const pendingOrders = orders.filter(o => !o.order_done && o.order_status?.current_status === 'Чакаща');
+    const confirmedOrders = orders.filter(o => !o.order_done && o.order_status?.current_status === 'Потвърдена');
+    const processingOrders = orders.filter(o => !o.order_done && o.order_status?.current_status === 'В обработка');
+    const shippedOrders = orders.filter(o => !o.order_done && o.order_status?.current_status === 'Изпратена');
+    const deliveredOrders = orders.filter(o => o.order_done || o.order_status?.current_status === 'Доставена');
     const cancelledOrders = orders.filter(o => o.order_status?.current_status === 'Отказана');
     const returnedOrders = orders.filter(o => o.order_status?.current_status === 'Върната');
 
@@ -1115,7 +1115,7 @@ async function loadOrders() {
     loadOrdersTable('orders-confirmed-table-body', confirmedOrders, false);
     loadOrdersTable('orders-processing-table-body', processingOrders, false);
     loadOrdersTable('orders-shipped-table-body', shippedOrders, false);
-    loadOrdersTable('orders-delivered-table-body', deliveredOrders, false);
+    loadOrdersTable('orders-delivered-table-body', deliveredOrders, false, true);
     loadOrdersTable('orders-cancelled-table-body', cancelledOrders, false);
     loadOrdersTable('orders-returned-table-body', returnedOrders, false);
   } catch (err) {
@@ -1124,11 +1124,11 @@ async function loadOrders() {
   }
 }
 
-function loadOrdersTable(tableBodyId, orders, showActions) {
+function loadOrdersTable(tableBodyId, orders, showActions, showReturnButton = false) {
   const tbody = document.getElementById(tableBodyId);
 
   if (!orders || orders.length === 0) {
-    const colspan = showActions ? 8 : 6;
+    const colspan = showActions ? 8 : (showReturnButton ? 7 : 6);
     tbody.innerHTML = `<tr><td colspan="${colspan}" class="text-center text-muted py-4">Няма поръчки</td></tr>`;
     return;
   }
@@ -1169,9 +1169,13 @@ function loadOrdersTable(tableBodyId, orders, showActions) {
           </button>
         </div>
       </td>
+    ` : '';
+
+    // Return button for delivered orders
+    const returnButton = showReturnButton ? `
       <td>
-        <button class="btn btn-sm rounded-pill toggle-done-btn" style="${o.order_done ? 'background-color: var(--primary-main); color: white;' : 'background-color: #999; color: white;'}" data-order-id="${o.order_id}" data-done="${o.order_done}" title="${o.order_done ? 'Завършена' : 'Маркирай като завършена'}">
-          <i class="bi ${o.order_done ? 'bi-check-circle-fill' : 'bi-circle'}"></i>
+        <button class="btn btn-sm btn-outline-warning rounded-pill mark-returned-btn" data-order-id="${o.order_id}" title="Маркирай като върната">
+          <i class="bi bi-arrow-counterclockwise"></i> Върната
         </button>
       </td>
     ` : '';
@@ -1189,6 +1193,7 @@ function loadOrdersTable(tableBodyId, orders, showActions) {
         <td><small>${orderDate}</small></td>
         <td><span class="badge ${badgeClass}">${currentStatus}</span></td>
         ${statusSection}
+        ${returnButton}
       </tr>
     `;
   }).join('');
@@ -1196,6 +1201,11 @@ function loadOrdersTable(tableBodyId, orders, showActions) {
   // Only attach handlers if showing actions
   if (showActions) {
     attachOrderHandlers(orders);
+  }
+
+  // Attach return button handlers for delivered orders
+  if (showReturnButton) {
+    attachReturnButtonHandlers();
   }
 }
 
@@ -1224,15 +1234,60 @@ function attachOrderHandlers(orders) {
       await updateOrderStatus(orderId, newStatus, orders);
     });
   });
+}
 
-  // Toggle done buttons
-  document.querySelectorAll('.toggle-done-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
+function attachReturnButtonHandlers() {
+  document.querySelectorAll('.mark-returned-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation(); // Prevent row click event
       const orderId = parseInt(btn.dataset.orderId);
-      const currentDone = btn.dataset.done === 'true';
-      await toggleOrderDone(orderId, !currentDone);
+      await markOrderAsReturned(orderId);
     });
   });
+}
+
+async function markOrderAsReturned(orderId) {
+  try {
+    // Fetch current order
+    const { data: order, error: fetchError } = await supabase
+      .from('orders')
+      .select('order_status')
+      .eq('order_id', orderId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const now = new Date().toISOString();
+    const currentOrderStatus = order?.order_status || { current_status: 'Доставена', history: [] };
+    const history = Array.isArray(currentOrderStatus.history) ? [...currentOrderStatus.history] : [];
+
+    // Add history entry
+    history.push({
+      status: 'Върната',
+      date: now,
+      note: 'Поръчката е маркирана като върната от администратор'
+    });
+
+    // Update order with new status
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
+        order_status: {
+          current_status: 'Върната',
+          history
+        }
+      })
+      .eq('order_id', orderId);
+
+    if (updateError) throw updateError;
+
+    toast.success(`Поръчка #${orderId} е маркирана като върната`);
+    await loadOrders();
+    await loadStats();
+  } catch (err) {
+    console.error('Error marking order as returned:', err);
+    toast.error('Грешка при маркиране на поръчката като върната');
+  }
 }
 
 async function updateOrderStatus(orderId, newStatus, orders) {
@@ -1279,24 +1334,6 @@ async function updateOrderStatus(orderId, newStatus, orders) {
     await loadStats();
   } catch (err) {
     console.error('Error updating order status:', err);
-    toast.error('Грешка при промяна на статуса');
-  }
-}
-
-async function toggleOrderDone(orderId, done) {
-  try {
-    const { error } = await supabase
-      .from('orders')
-      .update({ order_done: done })
-      .eq('order_id', orderId);
-
-    if (error) throw error;
-
-    toast.success(done ? `Поръчка #${orderId} е маркирана като завършена` : `Поръчка #${orderId} е отбелязана като незавършена`);
-    await loadOrders();
-    await loadStats();
-  } catch (err) {
-    console.error('Error toggling order done:', err);
     toast.error('Грешка при промяна на статуса');
   }
 }
@@ -1817,6 +1854,26 @@ function initializeTabListeners() {
   }
   if (ordersTab) {
     ordersTab.addEventListener('shown.bs.tab', () => {
+      // Ensure the first sub-tab (Текущи поръчки) is active
+      const currentOrdersTab = document.getElementById('orders-current-tab');
+      const currentOrdersPanel = document.getElementById('orders-current-panel');
+      
+      // Remove active from all order sub-tabs
+      document.querySelectorAll('#ordersTabContent .tab-pane').forEach(panel => {
+        panel.classList.remove('show', 'active');
+      });
+      document.querySelectorAll('#ordersTabs .nav-link').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      
+      // Set current orders as active
+      if (currentOrdersTab) {
+        currentOrdersTab.classList.add('active');
+      }
+      if (currentOrdersPanel) {
+        currentOrdersPanel.classList.add('show', 'active');
+      }
+      
       loadOrders();
       loadStats(); // Refresh stats when switching to orders tab
     });
