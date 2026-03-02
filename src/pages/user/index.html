@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Incognito Farm - Профилът на мой акаунт">
+  <meta name="keywords" content="профил, акаунт, потребител, България">
+  <title>Профилът мой - Incognito Farm</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href="/styles/header.css">
+  <link rel="stylesheet" href="/styles/footer.css">
+  <link rel="stylesheet" href="/pages/user/user.css">
+</head>
+<body>
+  <!-- Header -->
+  <div id="header-container"></div>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Loading State -->
+    <div id="user-loading" class="loading-spinner">
+      <div class="spinner-border text-success" role="status">
+        <span class="visually-hidden">Зареждане...</span>
+      </div>
+      <p class="mt-3">Зареждане на профила...</p>
+    </div>
+
+    <!-- Not Authenticated State -->
+    <div id="user-not-auth" class="d-none">
+      <div class="container py-5">
+        <div class="alert alert-warning" role="alert">
+          <i class="bi bi-exclamation-triangle"></i> 
+          <strong>Не сте влезли.</strong> 
+          <a href="/auth/login/" class="alert-link">Влезте в акаунта си</a> или 
+          <a href="/auth/register/" class="alert-link">направете регистрация</a>.
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Profile Content -->
+    <div id="user-content" class="d-none">
+      <!-- Profile Header -->
+      <div class="profile-header">
+        <div class="container">
+          <div class="profile-header-content">
+            <div class="profile-avatar">
+              <i class="bi bi-person-circle"></i>
+            </div>
+            <div class="profile-info">
+              <h1 id="profile-fullname" class="profile-name">Име</h1>
+              <p id="profile-email" class="profile-email">email@example.com</p>
+              <p id="profile-member-since" class="profile-meta">Член от</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile Content -->
+      <div class="container py-5">
+        <div class="row g-4">
+          <!-- Left Sidebar -->
+          <div class="col-lg-3">
+            <div class="profile-menu">
+              <button class="profile-menu-item active" data-section="personal-info">
+                <i class="bi bi-person"></i> Лични данни
+              </button>
+              <button class="profile-menu-item" data-section="addresses">
+                <i class="bi bi-geo-alt"></i> Адреси
+              </button>
+              <button class="profile-menu-item" data-section="orders">
+                <i class="bi bi-bag-check"></i> Поръчки
+              </button>
+              <button class="profile-menu-item" data-section="settings">
+                <i class="bi bi-gear"></i> Настройки
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Content -->
+          <div class="col-lg-9">
+            <!-- Personal Info Section -->
+            <section id="section-personal-info" class="profile-section active">
+              <div class="section-header">
+                <h2><i class="bi bi-person"></i> Лични данни</h2>
+                <button id="edit-personal-btn" class="btn btn-sm btn-outline-success">
+                  <i class="bi bi-pencil"></i> Редактирай
+                </button>
+              </div>
+              
+              <div id="personal-info-display" class="info-display">
+                <div class="info-row">
+                  <label>Име:</label>
+                  <span id="display-name">-</span>
+                </div>
+                <div class="info-row">
+                  <label>Второ име:</label>
+                  <span id="display-second-name">-</span>
+                </div>
+                <div class="info-row">
+                  <label>Фамилия:</label>
+                  <span id="display-lastname">-</span>
+                </div>
+                <div class="info-row">
+                  <label>Email:</label>
+                  <span id="display-email">-</span>
+                </div>
+              </div>
+
+              <div id="personal-info-edit" class="d-none">
+                <form id="edit-personal-form">
+                  <div class="mb-3">
+                    <label for="input-name" class="form-label">Име:</label>
+                    <input type="text" class="form-control" id="input-name" placeholder="Вашето име">
+                  </div>
+                  <div class="mb-3">
+                    <label for="input-second-name" class="form-label">Второ име:</label>
+                    <input type="text" class="form-control" id="input-second-name" placeholder="Второ име (опционално)">
+                  </div>
+                  <div class="mb-3">
+                    <label for="input-lastname" class="form-label">Фамилия:</label>
+                    <input type="text" class="form-control" id="input-lastname" placeholder="Вашата фамилия">
+                  </div>
+                  <div class="button-group">
+                    <button type="submit" class="btn btn-success">
+                      <i class="bi bi-check-lg"></i> Запази
+                    </button>
+                    <button type="button" id="cancel-personal-btn" class="btn btn-outline-secondary">
+                      <i class="bi bi-x-lg"></i> Отказ
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </section>
+
+            <!-- Addresses Section -->
+            <section id="section-addresses" class="profile-section d-none">
+              <div class="section-header">
+                <h2><i class="bi bi-geo-alt"></i> Мои адреси</h2>
+                <button id="add-address-btn" class="btn btn-sm btn-success">
+                  <i class="bi bi-plus-lg"></i> Добави адрес
+                </button>
+              </div>
+
+              <div id="addresses-list" class="addresses-grid">
+                <div class="text-center text-muted py-5">
+                  <p>Нямате запазени адреси</p>
+                </div>
+              </div>
+
+              <div id="add-address-form" class="d-none">
+                <form id="address-form">
+                  <div class="mb-3">
+                    <label for="address-street" class="form-label">Улица: <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="address-street" placeholder="Име на улица и номер" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="address-city" class="form-label">Град: <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="address-city" placeholder="Град" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="address-postal" class="form-label">Пощенски код: <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="address-postal" placeholder="Пощенски код" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="address-phone" class="form-label">Телефон: <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="address-phone" placeholder="Телефонен номер (само цифри, опционално +)" pattern="^\+?[0-9]+$" title="Телефонът трябва да съдържа само цифри и опционално + в началото" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="address-email" class="form-label">Имейл: <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control" id="address-email" placeholder="Имейл адрес" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="address-extra" class="form-label">Допълнителна информация:</label>
+                    <textarea class="form-control" id="address-extra" rows="2" placeholder="Блок, апартамент, етаж и т.н."></textarea>
+                  </div>
+                  <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="address-is-default">
+                    <label class="form-check-label" for="address-is-default">
+                      Установи като основна адреса
+                    </label>
+                  </div>
+                  <div class="button-group">
+                    <button type="submit" class="btn btn-success">
+                      <i class="bi bi-check-lg"></i> Запази
+                    </button>
+                    <button type="button" id="cancel-address-btn" class="btn btn-outline-secondary">
+                      <i class="bi bi-x-lg"></i> Отказ
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </section>
+
+            <!-- Orders Section -->
+            <section id="section-orders" class="profile-section d-none">
+              <div class="section-header">
+                <h2><i class="bi bi-bag-check"></i> Мои поръчки</h2>
+              </div>
+
+              <div id="orders-list" class="orders-grid">
+                <div class="text-center text-muted py-5">
+                  <p>Нямате поръчки</p>
+                </div>
+              </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="section-settings" class="profile-section d-none">
+              <div class="section-header">
+                <h2><i class="bi bi-gear"></i> Настройки</h2>
+              </div>
+
+              <div class="settings-group">
+                <h3>Безопасност</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <h4>Сменяне на парола</h4>
+                    <p>Актуализирайте вашата парола</p>
+                  </div>
+                  <button id="change-password-btn" class="btn btn-sm btn-outline-success">
+                    Смени парола
+                  </button>
+                </div>
+              </div>
+
+              <div class="settings-group mt-4">
+                <h3>Акаунт</h3>
+                <div class="setting-item">
+                  <div class="setting-info">
+                    <h4>Изтриване на акаунт</h4>
+                    <p>Безвратно изтриване на вашия акаунт и всички данни</p>
+                  </div>
+                  <button id="delete-account-btn" class="btn btn-sm btn-outline-danger">
+                    Изтрий акаунт
+                  </button>
+                </div>
+              </div>
+
+              <div class="settings-group mt-4">
+                <div class="logout-section">
+                  <button id="logout-btn" class="btn btn-danger w-100">
+                    <i class="bi bi-box-arrow-right"></i> Изход
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <div id="footer-container"></div>
+
+  <!-- Password Change Modal -->
+  <div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Смяна на парола</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="change-password-form">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="new-password" class="form-label">Нова парола:</label>
+              <input type="password" class="form-control" id="new-password" required>
+            </div>
+            <div class="mb-3">
+              <label for="confirm-password" class="form-label">Потвърди парола:</label>
+              <input type="password" class="form-control" id="confirm-password" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+            <button type="submit" class="btn btn-success">Смени парола</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Account Confirmation Modal -->
+  <div class="modal fade" id="deleteAccountModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Потвърдете изтриванe</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-danger" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i> 
+            <strong>Внимание!</strong> Това действие е необратимо.
+          </div>
+          <p>Вашият акаунт и всички свързани данни (адреси, поръчки) ще бъдат безвратно изтрити.</p>
+          <p>Напишете <strong>ИЗТРИЙ</strong> по-долу, за да потвърдите:</p>
+          <input type="text" class="form-control" id="delete-confirm-text" placeholder="ИЗТРИЙ">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+          <button type="button" class="btn btn-danger" id="confirm-delete-btn" disabled>
+            Изтрий окончателно
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Application Scripts -->
+  <script type="module" src="/pages/user/user.js"></script>
+</body>
+</html>

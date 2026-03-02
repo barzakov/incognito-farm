@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Incognito Farm - Административен панел">
+  <title>Админ панел - Incognito Farm</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/styles/global.css">
+  <link rel="stylesheet" href="/styles/header.css">
+  <link rel="stylesheet" href="/styles/footer.css">
+  <link rel="stylesheet" href="/pages/admin/admin.css">
+</head>
+<body>
+  <!-- Header -->
+  <div id="header-container"></div>
+
+  <!-- Main Content -->
+  <main class="admin-main py-4">
+    <!-- Access denied message (shown until auth check completes) -->
+    <div id="admin-denied" class="container text-center py-5 d-none">
+      <i class="bi bi-shield-x text-danger" style="font-size: 64px;"></i>
+      <h2 class="mt-3">Достъпът е отказан</h2>
+      <p class="text-muted">Нямате права за достъп до тази страница.</p>
+      <a href="/" class="btn btn-success">Към началната страница</a>
+    </div>
+
+    <!-- Loading state -->
+    <div id="admin-loading" class="container text-center py-5">
+      <div class="spinner-border text-success" role="status">
+        <span class="visually-hidden">Зареждане...</span>
+      </div>
+      <p class="mt-3 text-muted">Проверка на достъп...</p>
+    </div>
+
+    <!-- Admin content (hidden until verified) -->
+    <div id="admin-content" class="container d-none">
+      <!-- Admin header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="h3 mb-1"><i class="bi bi-shield-lock text-success"></i> Административен панел</h1>
+          <p class="text-muted mb-0">Управление на потребители, продукти и поръчки</p>
+        </div>
+      </div>
+
+      <!-- Stats cards -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-6 col-lg-4">
+          <div class="card border-0 shadow-sm rounded-3 stat-card-small">
+            <div class="card-body d-flex align-items-center gap-2 py-2 px-3">
+              <div class="stat-icon-small bg-warning bg-opacity-10 text-warning rounded-2 p-2">
+                <i class="bi bi-clock-history fs-6"></i>
+              </div>
+              <div>
+                <p class="text-muted mb-0" style="font-size: 0.8rem;">Поръчки чакащи</p>
+                <h5 class="mb-0 fw-bold" id="stat-waiting-orders">–</h5>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+          <div class="card border-0 shadow-sm rounded-3 stat-card-small">
+            <div class="card-body d-flex align-items-center gap-2 py-2 px-3">
+              <div class="stat-icon-small bg-danger bg-opacity-10 text-danger rounded-2 p-2">
+                <i class="bi bi-exclamation-triangle fs-6"></i>
+              </div>
+              <div>
+                <p class="text-muted mb-0" style="font-size: 0.8rem;">Продукти изтичащи (≤5 дни)</p>
+                <h5 class="mb-0 fw-bold" id="stat-expiring-products">–</h5>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users-panel" type="button" role="tab">
+            <i class="bi bi-people"></i> Потребители
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="products-tab" data-bs-toggle="tab" data-bs-target="#products-panel" type="button" role="tab">
+            <i class="bi bi-box-seam"></i> Продукти
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders-panel" type="button" role="tab">
+            <i class="bi bi-receipt"></i> Поръчки
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="groups-tab" data-bs-toggle="tab" data-bs-target="#groups-panel" type="button" role="tab">
+            <i class="bi bi-tag"></i> Групи
+          </button>
+        </li>
+      </ul>
+
+      <!-- Tab Content -->
+      <div class="tab-content" id="adminTabContent">
+        <!-- Users Tab -->
+        <div class="tab-pane fade show active" id="users-panel" role="tabpanel">
+          <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Име</th>
+                      <th>Презиме</th>
+                      <th>Фамилия</th>
+                      <th>Роля</th>
+                      <th>Регистрация</th>
+                      <th>Статус</th>
+                      <th>Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody id="users-table-body">
+                    <tr>
+                      <td colspan="8" class="text-center text-muted py-4">
+                        <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                        Зареждане...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Products Tab -->
+        <div class="tab-pane fade" id="products-panel" role="tabpanel">
+          <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                <h5 class="card-title mb-0">Продукти</h5>
+                <div class="d-flex gap-2 flex-wrap">
+                  <button type="button" class="btn btn-outline-success btn-sm" id="force-expiry-check-btn">
+                    <i class="bi bi-hourglass-split"></i> <span class="d-none d-sm-inline">Провери изтекли продукти</span><span class="d-inline d-sm-none">Изтекли</span>
+                  </button>
+                  <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                    <i class="bi bi-plus-lg"></i> <span class="d-none d-sm-inline">Добави продукт</span><span class="d-inline d-sm-none">Добави</span>
+                  </button>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead>
+                    <tr>
+                      <th>Изображение</th>
+                      <th>ID</th>
+                      <th>Име</th>
+                      <th>Цена</th>
+                      <th>Отстъпка</th>
+                      <th>Наличност</th>
+                      <th>Срок на годност</th>
+                      <th>Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody id="products-table-body">
+                    <tr>
+                      <td colspan="8" class="text-center text-muted py-4">
+                        <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                        Зареждане...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Orders Tab -->
+        <div class="tab-pane fade" id="orders-panel" role="tabpanel">
+          <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body">
+              <!-- Orders sub-tabs (desktop) -->
+              <ul class="nav nav-tabs mb-4 d-none d-md-flex" id="ordersTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link active" id="orders-current-tab" data-bs-toggle="tab" data-bs-target="#orders-current-panel" type="button" role="tab">
+                    <i class="bi bi-clock-history"></i> Текущи поръчки
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="orders-pending-tab" data-bs-toggle="tab" data-bs-target="#orders-pending-panel" type="button" role="tab">
+                    <i class="bi bi-hourglass-split"></i> Чакаща
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="orders-confirmed-tab" data-bs-toggle="tab" data-bs-target="#orders-confirmed-panel" type="button" role="tab">
+                    <i class="bi bi-check"></i> Потвърдена
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="orders-processing-tab" data-bs-toggle="tab" data-bs-target="#orders-processing-panel" type="button" role="tab">
+                    <i class="bi bi-gear"></i> В обработка
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="orders-shipped-tab" data-bs-toggle="tab" data-bs-target="#orders-shipped-panel" type="button" role="tab">
+                    <i class="bi bi-truck"></i> Изпратена
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="orders-delivered-tab" data-bs-toggle="tab" data-bs-target="#orders-delivered-panel" type="button" role="tab">
+                    <i class="bi bi-check-circle"></i> Доставена
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="orders-cancelled-tab" data-bs-toggle="tab" data-bs-target="#orders-cancelled-panel" type="button" role="tab">
+                    <i class="bi bi-x-circle"></i> Отказана
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="orders-returned-tab" data-bs-toggle="tab" data-bs-target="#orders-returned-panel" type="button" role="tab">
+                    <i class="bi bi-arrow-counterclockwise"></i> Върната
+                  </button>
+                </li>
+              </ul>
+
+              <!-- Orders dropdown (mobile) -->
+              <div class="d-md-none mb-4">
+                <select class="form-select" id="orders-tab-select">
+                  <option value="orders-current-panel">Текущи поръчки</option>
+                  <option value="orders-pending-panel">Чакаща</option>
+                  <option value="orders-confirmed-panel">Потвърдена</option>
+                  <option value="orders-processing-panel">В обработка</option>
+                  <option value="orders-shipped-panel">Изпратена</option>
+                  <option value="orders-delivered-panel">Доставена</option>
+                  <option value="orders-cancelled-panel">Отказана</option>
+                  <option value="orders-returned-panel">Върната</option>
+                </select>
+              </div>
+
+              <!-- Orders current -->
+              <div class="tab-content" id="ordersTabContent">
+                <div class="tab-pane show active" id="orders-current-panel" role="tabpanel">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Поръчка</th>
+                          <th>Потребител</th>
+                          <th>Продукти</th>
+                          <th>Сума</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                          <th>Промяна на статус</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orders-table-body">
+                        <tr>
+                          <td colspan="7" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                            Зареждане...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Orders pending -->
+                <div class="tab-pane" id="orders-pending-panel" role="tabpanel">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Поръчка</th>
+                          <th>Потребител</th>
+                          <th>Продукти</th>
+                          <th>Сума</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orders-pending-table-body">
+                        <tr>
+                          <td colspan="6" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                            Зареждане...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Orders confirmed -->
+                <div class="tab-pane" id="orders-confirmed-panel" role="tabpanel">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Поръчка</th>
+                          <th>Потребител</th>
+                          <th>Продукти</th>
+                          <th>Сума</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orders-confirmed-table-body">
+                        <tr>
+                          <td colspan="6" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                            Зареждане...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Orders processing -->
+                <div class="tab-pane" id="orders-processing-panel" role="tabpanel">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Поръчка</th>
+                          <th>Потребител</th>
+                          <th>Продукти</th>
+                          <th>Сума</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orders-processing-table-body">
+                        <tr>
+                          <td colspan="6" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                            Зареждане...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Orders shipped -->
+                <div class="tab-pane" id="orders-shipped-panel" role="tabpanel">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Поръчка</th>
+                          <th>Потребител</th>
+                          <th>Продукти</th>
+                          <th>Сума</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orders-shipped-table-body">
+                        <tr>
+                          <td colspan="6" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                            Зареждане...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div class="tab-pane" id="orders-delivered-panel" role="tabpanel">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Поръчка</th>
+                          <th>Потребител</th>
+                          <th>Продукти</th>
+                          <th>Сума</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                          <th>Върната</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orders-delivered-table-body">
+                        <tr>
+                          <td colspan="7" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                            Зареждане...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Orders cancelled -->
+                <div class="tab-pane" id="orders-cancelled-panel" role="tabpanel">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Поръчка</th>
+                          <th>Потребител</th>
+                          <th>Продукти</th>
+                          <th>Сума</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orders-cancelled-table-body">
+                        <tr>
+                          <td colspan="6" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                            Зареждане...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Orders returned -->
+                <div class="tab-pane" id="orders-returned-panel" role="tabpanel">
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                      <thead>
+                        <tr>
+                          <th>Поръчка</th>
+                          <th>Потребител</th>
+                          <th>Продукти</th>
+                          <th>Сума</th>
+                          <th>Дата</th>
+                          <th>Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody id="orders-returned-table-body">
+                        <tr>
+                          <td colspan="6" class="text-center text-muted py-4">
+                            <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                            Зареждане...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Groups Tab -->
+        <div class="tab-pane fade" id="groups-panel" role="tabpanel">
+          <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="card-title mb-0">Групи на продукти</h5>
+                <button type="button" class="btn btn-success" id="addGroupBtn">
+                  <i class="bi bi-plus-lg"></i> Добави група
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead>
+                    <tr>
+                      <th>Група</th>
+                      <th>Брой продукти</th>
+                      <th>Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody id="groups-table-body">
+                    <tr>
+                      <td colspan="3" class="text-center text-muted py-4">
+                        <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                        Зареждане...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Toggle Boss Modal -->
+  <div class="modal fade" id="toggleBossModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4">
+        <div class="modal-header border-0">
+          <h5 class="modal-title" id="toggleBossModalTitle">Промяна на роля</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
+        </div>
+        <div class="modal-body">
+          <p id="toggleBossModalMessage">Сигурни ли сте?</p>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+          <button type="button" class="btn btn-warning" id="toggleBossConfirmBtn">Потвърди</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Product Modal -->
+  <div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content rounded-4">
+        <form id="addProductForm" class="d-flex flex-column h-100">
+          <div class="modal-header border-0">
+            <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Добавяне на продукт</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="product-name" class="form-label">Име *</label>
+              <input type="text" class="form-control" id="product-name" required>
+              <div class="invalid-feedback">Името е задължително</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="product-brief" class="form-label">Кратко описание</label>
+              <input type="text" class="form-control" id="product-brief">
+            </div>
+
+            <div class="mb-3">
+              <label for="product-info" class="form-label">Описание</label>
+              <textarea class="form-control" id="product-info" rows="3"></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label for="product-price" class="form-label">Цена (лв.) *</label>
+              <input type="number" class="form-control" id="product-price" step="0.01" min="0" required>
+              <div class="invalid-feedback">Цената е задължителна</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="product-expire" class="form-label">Срок на годност</label>
+              <input type="text" class="form-control" id="product-expire" placeholder="дд.мм.гггг (напр. 25.12.2026)">
+              <small class="form-text text-muted">Формат: ден.месец.година</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="product-discount" class="form-label">Отстъпка (лв.)</label>
+              <input type="number" class="form-control" id="product-discount" step="0.01" min="0">
+            </div>
+
+            <div class="mb-3">
+              <label for="product-availability" class="form-label">Наличност</label>
+              <select class="form-select" id="product-availability">
+                <option value="true">Налично</option>
+                <option value="false">Недостъпно</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="product-group" class="form-label">Група</label>
+              <select class="form-select" id="product-group">
+                <option value="">Без група</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="product-country" class="form-label">Произход</label>
+              <input type="text" class="form-control" id="product-country" placeholder="Е.г. България">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label d-block">Размер</label>
+              <div class="size-radio-group">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="product-size-unit" id="product-size-grams" value="грамове">
+                  <label class="form-check-label" for="product-size-grams">Грамове</label>
+                  <input type="number" class="form-control form-control-sm" id="product-size-grams-value" placeholder="Количество" min="0" step="0.01">
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="product-size-unit" id="product-size-kg" value="килограми">
+                  <label class="form-check-label" for="product-size-kg">Килограми</label>
+                  <input type="number" class="form-control form-control-sm" id="product-size-kg-value" placeholder="Количество" min="0" step="0.01">
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="product-size-unit" id="product-size-pieces" value="бройки">
+                  <label class="form-check-label" for="product-size-pieces">Бройки</label>
+                  <input type="number" class="form-control form-control-sm" id="product-size-pieces-value" placeholder="Количество" min="0" step="1">
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="product-image" class="form-label">Добавяне на изображение</label>
+              <input type="file" class="form-control" id="product-image" accept="image/*">
+              <small class="text-muted">JPG, PNG, WebP (макс 5MB)</small>
+              <button type="button" class="btn btn-sm btn-success mt-2" id="add-product-image-btn">
+                <i class="bi bi-plus-circle"></i> Добави изображение
+              </button>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label d-block">Изображения</label>
+              <div id="product-images-gallery" class="row g-2">
+                <div class="col-12 text-muted">Няма добавени изображения</div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+            <button type="submit" class="btn btn-success" id="addProductSubmitBtn">
+              <i class="bi bi-plus-lg"></i> Добави продукт
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Product Modal -->
+  <div class="modal fade" id="deleteProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">Изтриване на продукт</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
+        </div>
+        <div class="modal-body">
+          <p id="deleteProductModalMessage">Сигурни ли сте, че искате да изтриете този продукт?</p>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+          <button type="button" class="btn btn-danger" id="deleteProductConfirmBtn">Изтрий</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Product Modal -->
+  <div class="modal fade" id="editProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content rounded-4">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">Редактиране на продукт</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
+        </div>
+        <form id="editProductForm" class="d-flex flex-column" style="flex: 1; min-height: 0; overflow: hidden;">
+          <div class="modal-body">
+            <input type="hidden" id="edit-product-id">
+            
+            <div class="mb-3">
+              <label for="edit-product-name" class="form-label">Име *</label>
+              <input type="text" class="form-control" id="edit-product-name" required>
+              <div class="invalid-feedback">Името е задължително</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="edit-product-price" class="form-label">Цена (лв.) *</label>
+              <input type="number" class="form-control" id="edit-product-price" step="0.01" min="0" required>
+              <div class="invalid-feedback">Цената е задължителна</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="edit-product-expire" class="form-label">Срок на годност</label>
+              <input type="text" class="form-control" id="edit-product-expire" placeholder="дд.мм.гггг (напр. 25.12.2026)">
+              <small class="form-text text-muted">Формат: ден.месец.година</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="edit-product-discount" class="form-label">Отстъпка (лв.)</label>
+              <input type="number" class="form-control" id="edit-product-discount" step="0.01" min="0">
+            </div>
+
+            <div class="mb-3">
+              <label for="edit-product-availability" class="form-label">Наличност</label>
+              <select class="form-select" id="edit-product-availability">
+                <option value="true">Налично</option>
+                <option value="false">Недостъпно</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="edit-product-group" class="form-label">Група</label>
+              <select class="form-select" id="edit-product-group">
+                <option value="">Без група</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="edit-product-country" class="form-label">Произход</label>
+              <input type="text" class="form-control" id="edit-product-country" placeholder="Е.г. България">
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label d-block">Размер</label>
+              <div class="size-radio-group">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="edit-product-size-unit" id="edit-product-size-grams" value="грамове">
+                  <label class="form-check-label" for="edit-product-size-grams">Грамове</label>
+                  <input type="number" class="form-control form-control-sm" id="edit-product-size-grams-value" placeholder="Количество" min="0" step="0.01">
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="edit-product-size-unit" id="edit-product-size-kg" value="килограми">
+                  <label class="form-check-label" for="edit-product-size-kg">Килограми</label>
+                  <input type="number" class="form-control form-control-sm" id="edit-product-size-kg-value" placeholder="Количество" min="0" step="0.01">
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="edit-product-size-unit" id="edit-product-size-pieces" value="бройки">
+                  <label class="form-check-label" for="edit-product-size-pieces">Бройки</label>
+                  <input type="number" class="form-control form-control-sm" id="edit-product-size-pieces-value" placeholder="Количество" min="0" step="1">
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="edit-product-brief" class="form-label">Кратко описание</label>
+              <input type="text" class="form-control" id="edit-product-brief">
+            </div>
+
+            <div class="mb-3">
+              <label for="edit-product-info" class="form-label">Описание</label>
+              <textarea class="form-control" id="edit-product-info" rows="3"></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label for="edit-product-image" class="form-label">Добавяне на изображение</label>
+              <input type="file" class="form-control" id="edit-product-image" accept="image/*">
+              <small class="text-muted">JPG, PNG, WebP (макс 5MB)</small>
+              <button type="button" class="btn btn-sm btn-success mt-2" id="add-edit-image-btn">
+                <i class="bi bi-plus-circle"></i> Добави изображение
+              </button>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label d-block">Изображения</label>
+              <div id="edit-product-images-gallery" class="row g-2">
+                <div class="col-12 text-muted">Няма добавени изображения</div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+            <button type="submit" class="btn btn-primary" id="editProductSubmitBtn">
+              <i class="bi bi-check-lg"></i> Запази
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Group Modal -->
+  <div class="modal fade" id="addGroupModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">Добави нова група</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
+        </div>
+        <form id="addGroupForm">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="group-name" class="form-label">Име на група</label>
+              <input type="text" class="form-control" id="group-name" placeholder="Е.г. Зеленчуци" required>
+            </div>
+            <div class="mb-3">
+              <label for="add-group-product-select" class="form-label">Добави продукт</label>
+              <div class="input-group">
+                <select class="form-select" id="add-group-product-select">
+                  <option value="">Избери продукт...</option>
+                </select>
+                <button type="button" class="btn btn-outline-success" id="add-group-product-btn">
+                  <i class="bi bi-plus-lg"></i>
+                </button>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Продукти в групата</label>
+              <div id="add-group-products-container" class="p-3 border rounded bg-light" style="min-height: 60px;">
+                <span class="text-muted">Няма продукти</span>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-plus-lg"></i> Добави
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Group Modal -->
+  <div class="modal fade" id="editGroupModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">Редактирай група</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
+        </div>
+        <form id="editGroupForm">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="edit-group-name" class="form-label">Име на група</label>
+              <input type="text" class="form-control" id="edit-group-name" placeholder="Е.г. Зеленчуци" required>
+            </div>
+            <div class="mb-3">
+              <label for="edit-group-product-select" class="form-label">Добави продукт</label>
+              <div class="input-group">
+                <select class="form-select" id="edit-group-product-select">
+                  <option value="">Избери продукт...</option>
+                </select>
+                <button type="button" class="btn btn-outline-success" id="edit-group-product-btn">
+                  <i class="bi bi-plus-lg"></i>
+                </button>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Продукти в тази група</label>
+              <div id="group-products-container" class="p-3 border rounded bg-light" style="min-height: 60px;">
+                <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                <span class="ms-2">Зареждане...</span>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+            <button type="button" class="btn btn-danger" id="deleteGroupBtn">
+              <i class="bi bi-trash"></i> Изтрий
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg"></i> Запази
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Group Confirmation Modal -->
+  <div class="modal fade" id="deleteGroupModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">Изтрий група</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
+        </div>
+        <div class="modal-body">
+          <p id="deleteGroupModalMessage">Сигурни ли сте, че искате да изтриете тази група?</p>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+          <button type="button" class="btn btn-danger" id="deleteGroupConfirmBtn">
+            <i class="bi bi-trash"></i> Изтрий
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div id="footer-container"></div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Scripts -->
+  <script type="module" src="/pages/admin/admin.js"></script>
+</body>
+</html>
