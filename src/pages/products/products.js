@@ -191,8 +191,10 @@ function displayProducts(products) {
   grid.innerHTML = products.map((p) => {
     const productName = p.description?.name || 'Продукт';
     const briefInfo = p.description?.brief_info || '';
+    const hasDiscount = p.discountApplied != null && Number(p.discountApplied) > 0 && Number(p.finalPrice) < Number(p.price);
+    const savePct = hasDiscount ? Math.round(Number(p.discountApplied)) : 0;
     const price = p.price != null ? `${Number(p.price).toFixed(2)} лв.` : 'По запитване';
-    const finalPrice = p.finalPrice != null && p.finalPrice !== p.price ? `${Number(p.finalPrice).toFixed(2)} лв.` : null;
+    const finalPrice = hasDiscount ? `${Number(p.finalPrice).toFixed(2)} лв.` : null;
     
     let productImage = '🌾';
     if (p.images_location) {
@@ -205,6 +207,7 @@ function displayProducts(products) {
         <div class="card h-100 shadow-sm rounded-4 product-item" style="cursor: pointer;" data-product-id="${p.product_id}">
           <div class="card-body text-center">
             <div class="product-img fs-1 mb-3" style="overflow: hidden; height: 200px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #f8f9fa;">
+              ${hasDiscount ? `<div class="product-discount-badge">-${savePct}%</div>` : ''}
               ${productImage}
             </div>
             <h5 class="card-title">${productName}</h5>

@@ -481,8 +481,8 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .hero {
-    min-height: calc(100vh - 70px);
-    padding: 40px 20px;
+    min-height: 340px;
+    padding: 48px 20px;
   }
 
   .hero .container {
@@ -580,12 +580,12 @@
 
 @media (max-width: 480px) {
   .hero {
-    min-height: calc(100vh - 70px);
-    padding: 20px;
+    min-height: 300px;
+    padding: 36px 16px;
   }
 
   .hero .container {
-    padding: 30px 15px;
+    padding: 16px 12px;
   }
 
   .hero h1 {
