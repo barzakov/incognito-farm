@@ -107,7 +107,8 @@ Populated automatically by the `on_auth_user_created` trigger (see [Triggers](#t
 | Column | Type | Notes |
 |--------|------|-------|
 | `product_id` | bigint PK | |
-| `images_location` | text | Supabase Storage path |
+| `images_location` | text | Supabase Storage path (deprecated — use `images`) |
+| `images` | jsonb | Array: `[{ path, active }]` |
 | `description` | jsonb | `{ name, brief_info, info }` |
 | `extra` | jsonb | `{ expire: "YYYY-MM-DD", … }` |
 | `group_id` | bigint FK → `product_group` | |
@@ -241,4 +242,5 @@ RLS is enabled on all tables. Access is checked via the helper `public.is_boss()
 | `20260226200247_auth_rls_trigger.sql` | Auth trigger, `is_boss()`, all RLS policies |
 | `20260226211314_create_products_storage_bucket.sql` | Storage bucket + policies |
 | `20260227184635_auto_expire_products.sql` | Expiry trigger + pg_cron job |
+| `20260301190727_add_images_jsonb_to_products.sql` | Adds `products.images` jsonb column for multi-image support |
 | `20260303132938_add_discount_percentage.sql` | Adds `discount.discount_percentage` (0–100) |

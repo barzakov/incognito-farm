@@ -45,6 +45,7 @@ Migrations live in `supabase/migrations/`. Apply them in chronological order via
 20260226200247_auth_rls_trigger.sql
 20260226211314_create_products_storage_bucket.sql
 20260227184635_auto_expire_products.sql
+20260301190727_add_images_jsonb_to_products.sql
 20260303132938_add_discount_percentage.sql
 ```
 
@@ -85,3 +86,48 @@ Opens at `http://localhost:5173`.
 npm run build   # outputs to dist/
 npm run preview # preview the build locally
 ```
+
+---
+
+## 7. Deploy to Netlify
+
+### Initial setup
+
+1. **Push to GitHub** (or GitLab/Bitbucket)
+2. **Create Netlify site:**
+   - Netlify Dashboard → Add new site → Import from Git
+   - Select your repo and branch
+   - Build settings (auto-detected from `netlify.toml`):
+     - Build command: `npm run build`
+     - Publish directory: `dist`
+3. **Add environment variables:**
+   - Site settings → Environment variables → Add:
+     - `VITE_SUPABASE_URL` = your Supabase project URL
+     - `VITE_SUPABASE_ANON_KEY` = your anon key
+4. **Deploy site**
+
+### Post-deployment: Configure Supabase Auth
+
+**Important:** Update Supabase Auth URLs to allow authentication on your Netlify domain.
+
+1. Go to **Supabase Dashboard → Authentication → URL Configuration**
+2. Set:
+   - **Site URL**: `https://yoursite.netlify.app`
+   - **Redirect URLs**: Add `https://yoursite.netlify.app/**`
+
+### Optional: Control auto-deploys
+
+To avoid consuming your free tier build minutes on every git push:
+
+1. **Site settings → Build & deploy → Continuous deployment**
+2. Click **"Stop auto publishing"**
+3. Manually trigger deploys: **Deploys tab → Trigger deploy**
+
+### Routing
+
+The `netlify.toml` file handles clean URL rewrites:
+- `/products/` → `/pages/products/index.html`
+- `/auth/login/` → `/pages/auth/login.html`
+- etc.
+
+All routes defined in `vite.config.js` are mirrored in `netlify.toml`.
