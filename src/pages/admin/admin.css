@@ -38,6 +38,33 @@
   border-bottom-width: 2px;
 }
 
+.admin-main .table th.admin-sortable-th {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.admin-main .table th.admin-sortable-th:hover {
+  color: var(--primary-main);
+}
+
+.admin-main .table th.admin-sortable-th::after {
+  content: ' ↕';
+  font-size: 0.75em;
+  color: var(--neutral-medium);
+}
+
+.admin-main .table th.admin-sortable-th.sort-asc::after {
+  content: ' ↑';
+  color: var(--primary-main);
+}
+
+.admin-main .table th.admin-sortable-th.sort-desc::after {
+  content: ' ↓';
+  color: var(--primary-main);
+}
+
 .admin-main .table td {
   font-size: var(--font-size-sm);
   vertical-align: middle;

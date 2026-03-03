@@ -1,4 +1,4 @@
-import { supabase, fetchCurrentUserProfile } from '../../lib/supabaseClient.js';
+import { supabase, fetchCurrentUserProfile, calculateBestDiscount } from '../../lib/supabaseClient.js';
 import { loadComponents } from '../../lib/components.js';
 import { toast } from '../../lib/toast.js';
 
@@ -74,20 +74,52 @@ async function loadCartItems() {
     return;
   }
 
-  // Load product details from database
+  // Load product details from database with group discounts
   try {
     const productIds = cart.map(item => item.productId);
     const { data: products, error } = await supabase
       .from('products')
-      .select('*')
+      .select(`
+        product_id,
+        images_location,
+        description,
+        extra,
+        group_id,
+        price,
+        discount,
+        availability,
+        created_on,
+        product_group!left(
+          group_id,
+          name,
+          group_discount,
+          discount!left(
+            discount_id,
+            discount_percentage,
+            start_date,
+            end_date
+          )
+        )
+      `)
       .in('product_id', productIds);
 
     if (error) throw error;
 
-    // Merge cart quantities with product details
+    // Merge cart quantities with product details and calculate best discount
     const cartItems = cart.map(cartItem => {
       const product = products.find(p => p.product_id === cartItem.productId);
-      return product ? { ...product, quantity: cartItem.quantity } : null;
+      if (!product) return null;
+
+      const groupDiscount = product.product_group?.discount || null;
+      const discountInfo = calculateBestDiscount(product.price, product.discount, groupDiscount);
+
+      return {
+        ...product,
+        quantity: cartItem.quantity,
+        finalPrice: discountInfo.finalPrice,
+        discountApplied: discountInfo.discountApplied,
+        discountSource: discountInfo.discountSource,
+      };
     }).filter(item => item !== null);
 
     cachedCartProducts = cartItems;
@@ -112,9 +144,9 @@ function displayCartItems(items) {
     const productName = item.description?.name || 'Продукт';
     const briefInfo = item.description?.brief_info || '';
     const price = item.price != null ? Number(item.price) : 0;
-    const discountedPrice = item.discount != null ? Number(item.discount) : null;
-    const finalPrice = discountedPrice || price;
+    const finalPrice = item.finalPrice != null ? Number(item.finalPrice) : price;
     const totalPrice = (finalPrice * item.quantity).toFixed(2);
+    const hasDiscount = finalPrice < price;
 
     let productImage = `
       <div class="cart-item-placeholder">
@@ -155,9 +187,10 @@ function displayCartItems(items) {
         
         <div class="cart-item-price">
           <div>
-            ${discountedPrice ? `
+            ${hasDiscount ? `
               <div class="cart-item-original-price">${price.toFixed(2)} лв.</div>
-              <div class="cart-item-unit-price">${discountedPrice.toFixed(2)} лв. / бр.</div>
+              <div class="cart-item-unit-price">${finalPrice.toFixed(2)} лв. / бр.</div>
+              <small class="text-muted">${item.discountSource === 'group' ? '(Отстъпка на група)' : '(Специална цена)'}</small>
             ` : `
               <div class="cart-item-unit-price">${price.toFixed(2)} лв. / бр.</div>
             `}
@@ -174,8 +207,8 @@ function displayCartItems(items) {
 // Update cart summary
 function updateCartSummary(items) {
   const subtotal = items.reduce((sum, item) => {
-    const price = item.discount != null ? Number(item.discount) : Number(item.price);
-    return sum + (price * item.quantity);
+    const finalPrice = item.finalPrice != null ? Number(item.finalPrice) : Number(item.price);
+    return sum + (finalPrice * item.quantity);
   }, 0);
 
   document.getElementById('cart-subtotal').textContent = `${subtotal.toFixed(2)} лв.`;
@@ -285,12 +318,11 @@ function populateCheckoutSummary() {
   listEl.innerHTML = cachedCartProducts.map(item => {
     const name = item.description?.name || 'Продукт';
     const price = item.price != null ? Number(item.price) : 0;
-    const discountedPrice = item.discount != null ? Number(item.discount) : null;
-    const finalPrice = discountedPrice || price;
+    const finalPrice = item.finalPrice != null ? Number(item.finalPrice) : price;
     const lineTotal = finalPrice * item.quantity;
     totalPrice += price * item.quantity;
-    if (discountedPrice) {
-      totalDiscount += (price - discountedPrice) * item.quantity;
+    if (finalPrice < price) {
+      totalDiscount += (price - finalPrice) * item.quantity;
     }
 
     return `

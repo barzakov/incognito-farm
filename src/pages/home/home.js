@@ -1,4 +1,4 @@
-import { supabase } from '../../lib/supabaseClient.js';
+import { supabase, calculateBestDiscount } from '../../lib/supabaseClient.js';
 import { loadComponents } from '../../lib/components.js';
 import { toast } from '../../lib/toast.js';
 
@@ -80,26 +80,73 @@ function formatDateBG(dateValue) {
 async function loadDiscountCarousel() {
   const carousel = document.getElementById('discountCarousel');
   if (!carousel) return;
+  if (!supabase) {
+    carousel.innerHTML = `
+      <div class="text-center text-danger py-5 w-100">
+        <i class="bi bi-exclamation-circle fs-1"></i>
+        <p class="mt-3">Липсва връзка с базата данни</p>
+      </div>`;
+    return;
+  }
 
   try {
     // Fetch available products and prioritize discounted ones.
     // If discounted products are less than 3, fill with regular products.
     const { data: products, error } = await supabase
       .from('products')
-      .select('*')
+      .select(`
+        product_id,
+        images_location,
+        description,
+        extra,
+        group_id,
+        price,
+        discount,
+        availability,
+        created_on,
+        product_group!left(
+          group_id,
+          name,
+          group_discount,
+          discount!left(
+            discount_id,
+            discount_percentage,
+            start_date,
+            end_date
+          )
+        )
+      `)
       .eq('availability', true)
       .order('created_on', { ascending: false })
       .limit(30);
 
     if (error) throw error;
 
-    // Discounted products sorted by biggest saving (price - discount)
-    const discounted = (products || [])
-      .filter(p => p.price != null && p.discount != null && Number(p.discount) < Number(p.price))
-      .sort((a, b) => (Number(b.price) - Number(b.discount)) - (Number(a.price) - Number(a.discount)));
+    const withCalculatedDiscounts = (products || []).map((p) => {
+      const groupDiscount = p.product_group?.discount || null;
+      const discountInfo = calculateBestDiscount(p.price, p.discount, groupDiscount);
+      return {
+        ...p,
+        finalPrice: discountInfo.finalPrice,
+        discountApplied: discountInfo.discountApplied,
+        discountSource: discountInfo.discountSource,
+      };
+    });
+
+    // Discounted products sorted by biggest discount percentage first.
+    const discounted = withCalculatedDiscounts
+      .filter(p => p.discountApplied != null && Number(p.discountApplied) > 0 && Number(p.finalPrice) < Number(p.price))
+      .sort((a, b) => {
+        const pctDiff = Number(b.discountApplied) - Number(a.discountApplied);
+        if (pctDiff !== 0) return pctDiff;
+
+        const bSaving = Number(b.price) - Number(b.finalPrice);
+        const aSaving = Number(a.price) - Number(a.finalPrice);
+        return bSaving - aSaving;
+      });
 
     const discountedIds = new Set(discounted.map(p => p.product_id));
-    const regular = (products || []).filter(p => !discountedIds.has(p.product_id));
+    const regular = withCalculatedDiscounts.filter(p => !discountedIds.has(p.product_id));
 
     const minimumItems = 6;
     const prioritizedProducts = discounted.length >= minimumItems
@@ -120,10 +167,10 @@ async function loadDiscountCarousel() {
     carousel.innerHTML = prioritizedProducts.map(p => {
       const name = p.description?.name || 'Продукт';
       const brief = p.description?.brief_info || '';
-      const hasDiscount = p.price != null && p.discount != null && Number(p.discount) < Number(p.price);
+      const hasDiscount = p.discountApplied != null && Number(p.discountApplied) > 0 && Number(p.finalPrice) < Number(p.price);
       const price = p.price != null ? Number(p.price).toFixed(2) : null;
-      const discountedPrice = hasDiscount ? Number(p.discount).toFixed(2) : null;
-      const savePct = hasDiscount ? Math.round(((Number(p.price) - Number(p.discount)) / Number(p.price)) * 100) : 0;
+      const discountedPrice = hasDiscount ? Number(p.finalPrice).toFixed(2) : null;
+      const savePct = hasDiscount ? Math.round(Number(p.discountApplied)) : 0;
 
       let img = '<span class="carousel-emoji">🌾</span>';
       if (p.images_location) {
@@ -221,7 +268,9 @@ function showProductDetail(product) {
   const fullInfo = product.description?.info || product.description?.brief_info || 'Няма описание';
   const brief = product.description?.brief_info || 'Няма кратка информация';
   const price = product.price != null ? `${Number(product.price).toFixed(2)} лв.` : 'По запитване';
-  const discounted = product.discount != null ? `${Number(product.discount).toFixed(2)} лв.` : null;
+  const discounted = product.finalPrice != null && Number(product.finalPrice) < Number(product.price)
+    ? `${Number(product.finalPrice).toFixed(2)} лв.`
+    : null;
 
   let img = '🌾';
   if (product.images_location) {

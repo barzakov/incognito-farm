@@ -140,3 +140,226 @@ export function onAuthStateChange(callback) {
   if (!supabase) return { data: { subscription: { unsubscribe() {} } } };
   return supabase.auth.onAuthStateChange(callback);
 }
+
+// ─── Discount helpers ────────────────────────────────────────
+
+/**
+ * Fetch all discount records from the discount table.
+ * @returns {Promise<array>} array of discount objects
+ */
+export async function fetchAllDiscounts() {
+  const { data, error } = await supabase
+    .from('discount')
+    .select('*')
+    .order('start_date', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Fetch a single discount by ID.
+ * @param {number} discountId
+ * @returns {Promise<object|null>}
+ */
+export async function fetchDiscountById(discountId) {
+  const { data, error } = await supabase
+    .from('discount')
+    .select('*')
+    .eq('discount_id', discountId)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Create a new discount record.
+ * @param {{start_date: string, end_date: string}} discount - date strings (ISO format)
+ * @returns {Promise<object>} created discount
+ */
+export async function createDiscount(discount) {
+  const { data, error } = await supabase
+    .from('discount')
+    .insert([discount])
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Update an existing discount record.
+ * @param {number} discountId
+ * @param {{start_date?: string, end_date?: string}} updates
+ * @returns {Promise<object>} updated discount
+ */
+export async function updateDiscount(discountId, updates) {
+  const { data, error } = await supabase
+    .from('discount')
+    .update(updates)
+    .eq('discount_id', discountId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Delete a discount record.
+ * @param {number} discountId
+ * @returns {Promise<void>}
+ */
+export async function deleteDiscount(discountId) {
+  const { error } = await supabase
+    .from('discount')
+    .delete()
+    .eq('discount_id', discountId);
+  if (error) throw error;
+}
+
+/**
+ * Fetch active group discount for a given product group.
+ * Only returns discount if current date is within start_date and end_date.
+ * @param {number} groupId
+ * @returns {Promise<object|null>} discount object or null
+ */
+export async function fetchActiveGroupDiscount(groupId) {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  
+  const { data, error } = await supabase
+    .from('product_group')
+    .select(`
+      group_discount,
+      discount!inner(
+        discount_id,
+        start_date,
+        end_date
+      )
+    `)
+    .eq('group_id', groupId)
+    .gte('discount.start_date', today)
+    .lte('discount.end_date', today)
+    .single();
+  
+  if (error) {
+    // If no active discount, just return null
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+  
+  return data?.discount || null;
+}
+
+/**
+ * Fetch all products with their group discount info.
+ * Returns products with nested group and discount data.
+ * @returns {Promise<array>} array of products with group/discount info
+ */
+export async function fetchProductsWithGroupDiscounts() {
+  const { data, error } = await supabase
+    .from('products')
+    .select(`
+      product_id,
+      images_location,
+      description,
+      extra,
+      group_id,
+      price,
+      discount,
+      availability,
+      created_on,
+      product_group!inner(
+        group_id,
+        name,
+        group_discount,
+        discount!left(
+          discount_id,
+          start_date,
+          end_date
+        )
+      )
+    `);
+  
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Determine which discount to apply between product-level and group-level.
+ * Returns the better (lower final price).
+ * @param {number} productPrice - original product price
+ * @param {number|null} productDiscount - product-level discount percentage (0-100)
+ * @param {object|null} groupDiscount - group discount object with discount_percentage, start_date, end_date
+ * @returns {object} { finalPrice, discountApplied, discountSource }
+ *   discountSource: 'product', 'group', or 'none'
+ */
+export function calculateBestDiscount(productPrice, productDiscount, groupDiscount) {
+  const basePrice = Number(productPrice) || 0;
+
+  // Validate dates for group discount
+  let validGroupDiscount = null;
+  if (groupDiscount?.start_date && groupDiscount?.end_date) {
+    const today = new Date().toISOString().split('T')[0];
+    // Support both "YYYY-MM-DDTHH:mm:ss" and "YYYY-MM-DD HH:mm:ss"
+    const startDate = String(groupDiscount.start_date).split('T')[0].split(' ')[0];
+    const endDate = String(groupDiscount.end_date).split('T')[0].split(' ')[0];
+    if (today >= startDate && today <= endDate) {
+      validGroupDiscount = groupDiscount;
+    }
+  }
+
+  const productDiscountPct = productDiscount != null ? Number(productDiscount) : null;
+  const productDiscountFinalPrice =
+    productDiscountPct != null && !Number.isNaN(productDiscountPct)
+      ? basePrice * (1 - (productDiscountPct / 100))
+      : null;
+
+  const groupDiscountPct = validGroupDiscount?.discount_percentage != null
+    ? Number(validGroupDiscount.discount_percentage)
+    : null;
+  const groupDiscountFinalPrice =
+    groupDiscountPct != null && !Number.isNaN(groupDiscountPct)
+      ? basePrice * (1 - (groupDiscountPct / 100))
+      : null;
+
+  // If no discounts apply
+  if (productDiscountFinalPrice == null && groupDiscountFinalPrice == null) {
+    return {
+      finalPrice: basePrice,
+      discountApplied: null,
+      discountSource: 'none',
+    };
+  }
+
+  // If only product discount
+  if (productDiscountFinalPrice != null && groupDiscountFinalPrice == null) {
+    return {
+      finalPrice: productDiscountFinalPrice,
+      discountApplied: productDiscountPct,
+      discountSource: 'product',
+    };
+  }
+
+  // If only group discount
+  if (productDiscountFinalPrice == null && groupDiscountFinalPrice != null) {
+    return {
+      finalPrice: groupDiscountFinalPrice,
+      discountApplied: groupDiscountPct,
+      discountSource: 'group',
+    };
+  }
+
+  // Both discounts exist - pick the lower final price
+  if (productDiscountFinalPrice <= groupDiscountFinalPrice) {
+    return {
+      finalPrice: productDiscountFinalPrice,
+      discountApplied: productDiscountPct,
+      discountSource: 'product',
+    };
+  }
+
+  return {
+    finalPrice: groupDiscountFinalPrice,
+    discountApplied: groupDiscountPct,
+    discountSource: 'group',
+  };
+}

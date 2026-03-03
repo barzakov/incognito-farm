@@ -1,4 +1,4 @@
-import { supabase, fetchCurrentUserProfile } from '../../lib/supabaseClient.js';
+import { supabase, fetchCurrentUserProfile, fetchAllDiscounts, fetchDiscountById, createDiscount, updateDiscount, deleteDiscount } from '../../lib/supabaseClient.js';
 import { loadComponents } from '../../lib/components.js';
 import { toast } from '../../lib/toast.js';
 
@@ -112,6 +112,154 @@ function formatDateForBulgarianUsers(dateValue) {
   return parsedDate.toLocaleDateString('bg-BG');
 }
 
+const TABLE_SORT_CONFIG = {
+  'users-table-body': ['number', 'text', 'text', 'text', 'text', 'date', 'text', null],
+  'products-table-body': [null, 'number', 'text', 'number', 'number', 'text', 'text', 'date', null],
+  'orders-table-body': ['number', 'number', 'text', 'number', 'date', 'text', null],
+  'orders-pending-table-body': ['number', 'number', 'text', 'number', 'date', 'text'],
+  'orders-confirmed-table-body': ['number', 'number', 'text', 'number', 'date', 'text'],
+  'orders-processing-table-body': ['number', 'number', 'text', 'number', 'date', 'text'],
+  'orders-shipped-table-body': ['number', 'number', 'text', 'number', 'date', 'text'],
+  'orders-delivered-table-body': ['number', 'number', 'text', 'number', 'date', 'text', null],
+  'orders-cancelled-table-body': ['number', 'number', 'text', 'number', 'date', 'text'],
+  'orders-returned-table-body': ['number', 'number', 'text', 'number', 'date', 'text'],
+  'groups-table-body': ['text', 'number', null],
+  'discounts-table-body': ['date', 'date', 'number', 'text', null],
+};
+
+const tableSortState = {};
+
+function normalizeSortableValue(rawValue, type) {
+  const raw = String(rawValue ?? '').trim();
+
+  if (type === 'number') {
+    const normalized = raw.replace(',', '.').replace(/[^\d.-]/g, '');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  if (type === 'date') {
+    const numericTimestamp = Number(raw);
+    if (Number.isFinite(numericTimestamp) && numericTimestamp > 0) return numericTimestamp;
+
+    const parsedTimestamp = Date.parse(raw);
+    if (Number.isFinite(parsedTimestamp)) return parsedTimestamp;
+
+    const bgDateMatch = raw.match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/);
+    if (bgDateMatch) {
+      const day = Number(bgDateMatch[1]);
+      const month = Number(bgDateMatch[2]);
+      const year = Number(bgDateMatch[3].length === 2 ? `20${bgDateMatch[3]}` : bgDateMatch[3]);
+      const fallbackTimestamp = new Date(year, month - 1, day).getTime();
+      return Number.isFinite(fallbackTimestamp) ? fallbackTimestamp : 0;
+    }
+
+    return 0;
+  }
+
+  return raw.toLocaleLowerCase('bg-BG');
+}
+
+function getCellSortValue(row, columnIndex, type) {
+  const cell = row.children[columnIndex];
+  if (!cell) return type === 'text' ? '' : 0;
+
+  const raw = cell.dataset.sortValue ?? cell.textContent ?? '';
+  return normalizeSortableValue(raw, type);
+}
+
+function sortTableBodyRows(tbodyId, columnIndex, type, direction) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+
+  const dataRows = Array.from(tbody.querySelectorAll('tr')).filter((row) => !row.querySelector('td[colspan]'));
+  if (dataRows.length < 2) return;
+
+  dataRows.sort((a, b) => {
+    const valueA = getCellSortValue(a, columnIndex, type);
+    const valueB = getCellSortValue(b, columnIndex, type);
+
+    let compareResult;
+    if (typeof valueA === 'number' && typeof valueB === 'number') {
+      compareResult = valueA - valueB;
+    } else {
+      compareResult = String(valueA).localeCompare(String(valueB), 'bg');
+    }
+
+    return direction === 'asc' ? compareResult : -compareResult;
+  });
+
+  dataRows.forEach((row) => tbody.appendChild(row));
+}
+
+function updateTableSortIndicators(tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+
+  const headers = Array.from(tbody.closest('table')?.querySelectorAll('thead th') || []);
+  headers.forEach((th) => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    th.removeAttribute('aria-sort');
+  });
+
+  const state = tableSortState[tbodyId];
+  if (!state) return;
+
+  const activeHeader = headers[state.columnIndex];
+  if (!activeHeader) return;
+
+  activeHeader.classList.add(state.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+  activeHeader.setAttribute('aria-sort', state.direction === 'asc' ? 'ascending' : 'descending');
+}
+
+function applySavedTableSort(tbodyId) {
+  const state = tableSortState[tbodyId];
+  if (!state) return;
+
+  sortTableBodyRows(tbodyId, state.columnIndex, state.type, state.direction);
+  updateTableSortIndicators(tbodyId);
+}
+
+function initializeTableSorting() {
+  Object.entries(TABLE_SORT_CONFIG).forEach(([tbodyId, columns]) => {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+
+    const headers = Array.from(tbody.closest('table')?.querySelectorAll('thead th') || []);
+    if (!headers.length) return;
+
+    headers.forEach((th, columnIndex) => {
+      const type = columns[columnIndex];
+      if (!type) return;
+
+      th.classList.add('admin-sortable-th');
+      th.setAttribute('role', 'button');
+      th.setAttribute('tabindex', '0');
+
+      const handleSort = () => {
+        const currentState = tableSortState[tbodyId];
+        const direction = currentState && currentState.columnIndex === columnIndex && currentState.direction === 'asc'
+          ? 'desc'
+          : 'asc';
+
+        tableSortState[tbodyId] = { columnIndex, direction, type };
+        sortTableBodyRows(tbodyId, columnIndex, type, direction);
+        updateTableSortIndicators(tbodyId);
+      };
+
+      th.addEventListener('click', handleSort);
+      th.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          handleSort();
+        }
+      });
+    });
+
+    updateTableSortIndicators(tbodyId);
+  });
+}
+
 // ─── Users table ─────────────────────────────────────────────
 
 async function loadUsers() {
@@ -138,19 +286,20 @@ async function loadUsers() {
         ? '<span class="badge badge-deleted">Изтрит</span>'
         : '<span class="badge badge-active">Активен</span>';
       const createdDate = u.created_on ? new Date(u.created_on).toLocaleDateString('bg-BG') : '–';
+      const createdDateSort = u.created_on ? new Date(u.created_on).getTime() : 0;
 
       const toggleBossLabel = u.boss ? 'Премахни админ' : 'Направи админ';
       const toggleBossClass = u.boss ? 'btn-outline-secondary' : 'btn-outline-warning';
 
       return `
         <tr>
-          <td>${u.user_id}</td>
+          <td data-sort-value="${u.user_id}">${u.user_id}</td>
           <td>${u.name || '–'}</td>
           <td>${u.second_name || '–'}</td>
           <td>${u.lastname || '–'}</td>
-          <td>${roleBadge}</td>
-          <td>${createdDate}</td>
-          <td>${statusBadge}</td>
+          <td data-sort-value="${u.boss ? 1 : 0}">${roleBadge}</td>
+          <td data-sort-value="${createdDateSort}">${createdDate}</td>
+          <td data-sort-value="${isDeleted ? 1 : 0}">${statusBadge}</td>
           <td>
             <button class="btn btn-action ${toggleBossClass}" data-user-id="${u.user_id}" data-is-boss="${u.boss}" data-action="toggle-boss">
               <i class="bi bi-shield"></i> ${toggleBossLabel}
@@ -166,6 +315,7 @@ async function loadUsers() {
 
     // Attach event listeners
     attachUserActions();
+    applySavedTableSort('users-table-body');
   } catch (err) {
     console.error('Error loading users:', err);
     tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Грешка при зареждане</td></tr>';
@@ -250,13 +400,26 @@ async function loadProducts() {
   try {
     const { data: products, error } = await supabase
       .from('products')
-      .select('*')
+      .select(`
+        *,
+        product_group!left(
+          group_id,
+          name,
+          group_discount,
+          discount!left(
+            discount_id,
+            discount_percentage,
+            start_date,
+            end_date
+          )
+        )
+      `)
       .order('product_id', { ascending: false });
 
     if (error) throw error;
 
     if (!products || products.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Няма продукти</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Няма продукти</td></tr>';
       return;
     }
 
@@ -265,9 +428,34 @@ async function loadProducts() {
         ? '<span class="badge bg-success">Налично</span>'
         : '<span class="badge bg-danger">Недостъпно</span>';
       const price = p.price != null ? `${Number(p.price).toFixed(2)} лв.` : '–';
-      const discount = p.discount != null ? `${Number(p.discount).toFixed(2)} лв.` : '–';
+      const priceSortValue = p.price != null ? Number(p.price) : 0;
+      
+      // Determine discount display
+      let discountDisplay = '–';
+      let discountBadge = '';
+      const productDiscountPercent = p.discount != null ? Number(p.discount) : null;
+      const groupDiscountPercent = p.product_group?.discount?.discount_percentage != null
+        ? Number(p.product_group.discount.discount_percentage)
+        : null;
+      const hasProductDiscount = productDiscountPercent != null && productDiscountPercent > 0;
+      const hasGroupDiscount = groupDiscountPercent != null && groupDiscountPercent > 0;
+      
+      if (hasProductDiscount && hasGroupDiscount) {
+        discountDisplay = `Инд. ${productDiscountPercent.toFixed(2)}% / Група ${groupDiscountPercent.toFixed(2)}%`;
+        discountBadge = '<span class="badge bg-info ms-2" title="Ще се приложи по-добрата отстъпка">2 вида</span>';
+      } else if (hasProductDiscount) {
+        discountDisplay = `${productDiscountPercent.toFixed(2)}%`;
+        discountBadge = '<span class="badge bg-warning ms-2">Индивидуална</span>';
+      } else if (hasGroupDiscount) {
+        discountDisplay = `${groupDiscountPercent.toFixed(2)}%`;
+        discountBadge = '<span class="badge bg-success ms-2">Група</span>';
+      }
+      const discountSortValue = Math.max(productDiscountPercent || 0, groupDiscountPercent || 0);
+      
       const productName = p.description?.name || '–';
       const expireDate = formatDateForBulgarianUsers(p.extra?.expire || null);
+      const expireSortValue = p.extra?.expire ? new Date(`${p.extra.expire}T00:00:00`).getTime() : 0;
+      const groupName = p.product_group?.name || '–';
       
       let imageThumb = '🌾';
       if (p.images_location) {
@@ -278,12 +466,13 @@ async function loadProducts() {
       return `
         <tr>
           <td>${imageThumb}</td>
-          <td>${p.product_id}</td>
+          <td data-sort-value="${p.product_id}">${p.product_id}</td>
           <td>${productName}</td>
-          <td>${price}</td>
-          <td>${discount}</td>
-          <td>${availabilityBadge}</td>
-          <td>${expireDate}</td>
+          <td data-sort-value="${priceSortValue}">${price}</td>
+          <td data-sort-value="${discountSortValue}">${discountDisplay}${discountBadge}</td>
+          <td>${groupName}</td>
+          <td data-sort-value="${p.availability ? 1 : 0}">${availabilityBadge}</td>
+          <td data-sort-value="${expireSortValue}">${expireDate}</td>
           <td>
             <button class="btn btn-action btn-outline-primary btn-sm" data-product-id="${p.product_id}" data-action="edit-product" data-product-data='${JSON.stringify(p)}'>
               <i class="bi bi-pencil"></i>
@@ -297,9 +486,10 @@ async function loadProducts() {
     }).join('');
 
     attachProductActions();
+    applySavedTableSort('products-table-body');
   } catch (err) {
     console.error('Error loading products:', err);
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Грешка при зареждане</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Грешка при зареждане</td></tr>';
   }
 }
 
@@ -579,6 +769,11 @@ async function handleEditProductSubmit(productId, form) {
       return;
     }
 
+    if (discount !== null && (discount < 0 || discount > 100)) {
+      toast.error('Отстъпката трябва да бъде между 0 и 100%.');
+      return;
+    }
+
     // Collect extra data (country, size, expire)
     const country = form.querySelector('#edit-product-country').value.trim();
     let expire = form.querySelector('#edit-product-expire').value;
@@ -837,6 +1032,20 @@ function initializeProductForm() {
       const discount = form.querySelector('#product-discount').value ? parseFloat(form.querySelector('#product-discount').value) : null;
       const availability = form.querySelector('#product-availability').value === 'true';
       const groupId = form.querySelector('#product-group').value ? parseInt(form.querySelector('#product-group').value) : null;
+
+      if (!name || isNaN(price)) {
+        toast.error('Моля попълнете задължителните полета.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        return;
+      }
+
+      if (discount !== null && (discount < 0 || discount > 100)) {
+        toast.error('Отстъпката трябва да бъде между 0 и 100%.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        return;
+      }
 
       // Collect extra data (country, size, expire)
       const country = form.querySelector('#product-country').value.trim();
@@ -1143,6 +1352,8 @@ function loadOrdersTable(tableBodyId, orders, showActions, showReturnButton = fa
     const currentStatus = o.order_status?.current_status || 'Чакаща';
     const badgeClass = getOrderStatusBadgeClass(currentStatus);
     const total = ((o.price || 0) - (o.discount || 0)).toFixed(2);
+    const totalSortValue = Number((o.price || 0) - (o.discount || 0));
+    const orderDateSortValue = o.order_date ? new Date(o.order_date).getTime() : 0;
     const notes = o.short_description || extra.notes || '';
 
     // Build items summary
@@ -1182,16 +1393,16 @@ function loadOrdersTable(tableBodyId, orders, showActions, showReturnButton = fa
 
     return `
       <tr data-order-id="${o.order_id}">
-        <td><strong>#${o.order_id}</strong></td>
-        <td>${o.user_id}</td>
+        <td data-sort-value="${o.order_id}"><strong>#${o.order_id}</strong></td>
+        <td data-sort-value="${o.user_id}">${o.user_id}</td>
         <td>
           <small title="${itemsSummary}" style="max-width: 200px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
             ${itemsSummary}
           </small>
         </td>
-        <td><strong class="text-success">${total} лв.</strong></td>
-        <td><small>${orderDate}</small></td>
-        <td><span class="badge ${badgeClass}">${currentStatus}</span></td>
+        <td data-sort-value="${totalSortValue}"><strong class="text-success">${total} лв.</strong></td>
+        <td data-sort-value="${orderDateSortValue}"><small>${orderDate}</small></td>
+        <td data-sort-value="${currentStatus.toLocaleLowerCase('bg-BG')}"><span class="badge ${badgeClass}">${currentStatus}</span></td>
         ${statusSection}
         ${returnButton}
       </tr>
@@ -1207,6 +1418,8 @@ function loadOrdersTable(tableBodyId, orders, showActions, showReturnButton = fa
   if (showReturnButton) {
     attachReturnButtonHandlers();
   }
+
+  applySavedTableSort(tableBodyId);
 }
 
 function attachOrderHandlers(orders) {
@@ -1454,7 +1667,7 @@ async function loadGroups() {
       return `
         <tr>
           <td><strong>${g.name || '–'}</strong></td>
-          <td><span class="badge bg-info">${count}</span></td>
+          <td data-sort-value="${count}"><span class="badge bg-info">${count}</span></td>
           <td>
             <button type="button" class="btn btn-sm btn-outline-primary edit-group-btn" data-group-id="${g.group_id}">
               <i class="bi bi-pencil"></i>
@@ -1468,6 +1681,7 @@ async function loadGroups() {
     }).join('');
 
     attachGroupActions();
+    applySavedTableSort('groups-table-body');
   } catch (err) {
     console.error('Error loading groups:', err);
     tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger py-4">Грешка при зареждане</td></tr>';
@@ -1831,6 +2045,293 @@ function handleEditGroupSubmit() {
   form.dataset.initialized = 'true';
 }
 
+// ─── Discounts table ────────────────────────────────────────
+
+async function loadDiscounts() {
+  const tbody = document.getElementById('discounts-table-body');
+  try {
+    const discounts = await fetchAllDiscounts();
+
+    if (!discounts || discounts.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Няма отстъпки</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = discounts.map((d) => {
+      const today = new Date().toISOString().split('T')[0];
+      const startDate = new Date(d.start_date).toLocaleDateString('bg-BG');
+      const endDate = new Date(d.end_date).toLocaleDateString('bg-BG');
+      const startDateSortValue = d.start_date ? new Date(d.start_date).getTime() : 0;
+      const endDateSortValue = d.end_date ? new Date(d.end_date).getTime() : 0;
+      const isActive = today >= d.start_date.split('T')[0] && today <= d.end_date.split('T')[0];
+      const statusBadge = isActive ? '<span class="badge bg-success">Активна</span>' : '<span class="badge bg-secondary">Неактивна</span>';
+      const percentage = d.discount_percentage != null ? `${Number(d.discount_percentage).toFixed(2)}%` : '–';
+      const percentageSortValue = d.discount_percentage != null ? Number(d.discount_percentage) : 0;
+
+      return `
+        <tr>
+          <td data-sort-value="${startDateSortValue}">${startDate}</td>
+          <td data-sort-value="${endDateSortValue}">${endDate}</td>
+          <td data-sort-value="${percentageSortValue}">${percentage}</td>
+          <td data-sort-value="${isActive ? 1 : 0}">${statusBadge}</td>
+          <td>
+            <button type="button" class="btn btn-sm btn-outline-primary edit-discount-btn" data-discount-id="${d.discount_id}">
+              <i class="bi bi-pencil"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    attachDiscountActions();
+    applySavedTableSort('discounts-table-body');
+  } catch (err) {
+    console.error('Error loading discounts:', err);
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Грешка при зареждане</td></tr>';
+  }
+}
+
+function attachDiscountActions() {
+  document.querySelectorAll('.edit-discount-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const discountId = parseInt(btn.dataset.discountId);
+      showEditDiscountModal(discountId);
+    });
+  });
+}
+
+async function loadGroupsIntoDiscountDropdowns() {
+  const { data: groups } = await supabase
+    .from('product_group')
+    .select('group_id, name')
+    .order('name', { ascending: true });
+
+  if (groups) {
+    const addGroupSelect = document.getElementById('discount-group-select');
+    const editGroupSelect = document.getElementById('edit-discount-group-select');
+
+    const groupOptions = groups.map((g) => `<option value="${g.group_id}">${g.name}</option>`).join('');
+
+    if (addGroupSelect) {
+      addGroupSelect.innerHTML = '<option value="">Избери група...</option>' + groupOptions;
+    }
+    if (editGroupSelect) {
+      editGroupSelect.innerHTML = '<option value="">Избери група...</option>' + groupOptions;
+    }
+  }
+}
+
+async function showEditDiscountModal(discountId) {
+  try {
+    const discount = await fetchDiscountById(discountId);
+    if (!discount) {
+      toast.error('Отстъпка не намерена');
+      return;
+    }
+
+    // Get the group that has this discount
+    const { data: group } = await supabase
+      .from('product_group')
+      .select('group_id')
+      .eq('group_discount', discountId)
+      .single();
+
+    const startDate = new Date(discount.start_date).toISOString().split('T')[0];
+    const endDate = new Date(discount.end_date).toISOString().split('T')[0];
+
+    document.getElementById('edit-discount-start-date').value = startDate;
+    document.getElementById('edit-discount-end-date').value = endDate;
+    document.getElementById('edit-discount-percentage').value = discount.discount_percentage || 0;
+    
+    await loadGroupsIntoDiscountDropdowns();
+    if (group) {
+      document.getElementById('edit-discount-group-select').value = group.group_id;
+    }
+
+    const editForm = document.getElementById('editDiscountForm');
+    editForm.dataset.discountId = discountId;
+    editForm.dataset.currentGroupId = group?.group_id || '';
+
+    // Clear previous delete listener
+    const deleteBtn = document.getElementById('deleteDiscountBtn');
+    deleteBtn.removeEventListener('click', deleteDiscountHandler);
+    deleteBtn.addEventListener('click', deleteDiscountHandler);
+
+    // eslint-disable-next-line no-undef
+    new bootstrap.Modal(document.getElementById('editDiscountModal')).show();
+  } catch (err) {
+    console.error('Error loading discount:', err);
+    toast.error('Грешка при зареждане на отстъпка');
+  }
+}
+
+async function deleteDiscountHandler() {
+  const form = document.getElementById('editDiscountForm');
+  const discountId = parseInt(form.dataset.discountId);
+
+  if (!confirm('Сигурни ли сте, че желаете да изтриете тази отстъпка?')) return;
+
+  try {
+    // Clear group_discount reference
+    const currentGroupId = parseInt(form.dataset.currentGroupId);
+    if (currentGroupId) {
+      await supabase
+        .from('product_group')
+        .update({ group_discount: null })
+        .eq('group_id', currentGroupId);
+    }
+
+    // Delete discount
+    await deleteDiscount(discountId);
+
+    toast.success('Отстъпка изтрита успешно');
+    
+    // eslint-disable-next-line no-undef
+    const modal = bootstrap.Modal.getInstance(document.getElementById('editDiscountModal'));
+    if (modal) modal.hide();
+    
+    await loadDiscounts();
+  } catch (err) {
+    console.error('Error deleting discount:', err);
+    toast.error('Грешка при изтриване на отстъпка');
+  }
+}
+
+function handleAddDiscountSubmit() {
+  const form = document.getElementById('addDiscountForm');
+  if (!form || form.dataset.initialized === 'true') return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const startDate = document.getElementById('discount-start-date').value;
+    const endDate = document.getElementById('discount-end-date').value;
+    const percentage = parseFloat(document.getElementById('discount-percentage').value);
+    const groupId = parseInt(document.getElementById('discount-group-select').value);
+
+    if (!startDate || !endDate || !groupId || isNaN(percentage)) {
+      toast.error('Всички полета са задължителни');
+      return;
+    }
+
+    if (percentage < 0 || percentage > 100) {
+      toast.error('Отстъпката трябва да бъде между 0 и 100%');
+      return;
+    }
+
+    if (new Date(startDate) >= new Date(endDate)) {
+      toast.error('Началната дата трябва да бъде преди крайната дата');
+      return;
+    }
+
+    try {
+      const newDiscount = await createDiscount({
+        start_date: `${startDate}T00:00:00`,
+        end_date: `${endDate}T23:59:59`,
+        discount_percentage: percentage,
+      });
+
+      // Assign discount to group
+      await supabase
+        .from('product_group')
+        .update({ group_discount: newDiscount.discount_id })
+        .eq('group_id', groupId);
+
+      toast.success('Отстъпка добавена успешно');
+      form.reset();
+      
+      // eslint-disable-next-line no-undef
+      const modal = bootstrap.Modal.getInstance(document.getElementById('addDiscountModal'));
+      if (modal) modal.hide();
+      
+      await loadDiscounts();
+    } catch (err) {
+      console.error('Error adding discount:', err);
+      toast.error('Грешка при добавяне на отстъпка');
+    }
+  });
+
+  form.dataset.initialized = 'true';
+}
+
+function handleEditDiscountSubmit() {
+  const form = document.getElementById('editDiscountForm');
+  if (!form || form.dataset.initialized === 'true') return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const discountId = parseInt(form.dataset.discountId);
+    const currentGroupId = parseInt(form.dataset.currentGroupId);
+    const startDate = document.getElementById('edit-discount-start-date').value;
+    const endDate = document.getElementById('edit-discount-end-date').value;
+    const percentage = parseFloat(document.getElementById('edit-discount-percentage').value);
+    const newGroupId = parseInt(document.getElementById('edit-discount-group-select').value);
+
+    if (!startDate || !endDate || !newGroupId || isNaN(percentage)) {
+      toast.error('Всички полета са задължителни');
+      return;
+    }
+
+    if (percentage < 0 || percentage > 100) {
+      toast.error('Отстъпката трябва да бъде между 0 и 100%');
+      return;
+    }
+
+    if (new Date(startDate) >= new Date(endDate)) {
+      toast.error('Началната дата трябва да бъде преди крайната дата');
+      return;
+    }
+
+    try {
+      // Update discount dates and percentage
+      await updateDiscount(discountId, {
+        start_date: `${startDate}T00:00:00`,
+        end_date: `${endDate}T23:59:59`,
+        discount_percentage: percentage,
+      });
+
+      // Update group reference if group changed
+      if (currentGroupId !== newGroupId) {
+        if (currentGroupId) {
+          await supabase
+            .from('product_group')
+            .update({ group_discount: null })
+            .eq('group_id', currentGroupId);
+        }
+
+        await supabase
+          .from('product_group')
+          .update({ group_discount: discountId })
+          .eq('group_id', newGroupId);
+      }
+
+      toast.success('Отстъпка обновена успешно');
+      
+      // eslint-disable-next-line no-undef
+      const modal = bootstrap.Modal.getInstance(document.getElementById('editDiscountModal'));
+      if (modal) modal.hide();
+      
+      await loadDiscounts();
+    } catch (err) {
+      console.error('Error updating discount:', err);
+      toast.error('Грешка при обновяване на отстъпка');
+    }
+  });
+
+  form.dataset.initialized = 'true';
+}
+
+function initializeDiscountForm() {
+  document.getElementById('addDiscountBtn').addEventListener('click', async () => {
+    document.getElementById('addDiscountForm').reset();
+    await loadGroupsIntoDiscountDropdowns();
+    // eslint-disable-next-line no-undef
+    new bootstrap.Modal(document.getElementById('addDiscountModal')).show();
+  });
+
+  handleAddDiscountSubmit();
+  handleEditDiscountSubmit();
+}
+
 // ─── Tab change listeners ────────────────────────────────────
 
 function initializeTabListeners() {
@@ -1838,6 +2339,7 @@ function initializeTabListeners() {
   const productsTab = document.getElementById('products-tab');
   const ordersTab = document.getElementById('orders-tab');
   const groupsTab = document.getElementById('groups-tab');
+  const discountsTab = document.getElementById('discounts-tab');
 
   if (usersTab) {
     usersTab.addEventListener('shown.bs.tab', () => {
@@ -1882,6 +2384,12 @@ function initializeTabListeners() {
     groupsTab.addEventListener('shown.bs.tab', () => {
       loadGroups();
       loadStats(); // Refresh stats when switching to groups tab
+    });
+  }
+  if (discountsTab) {
+    discountsTab.addEventListener('shown.bs.tab', () => {
+      loadDiscounts();
+      loadStats(); // Refresh stats when switching to discounts tab
     });
   }
 
@@ -1936,10 +2444,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const profile = await checkAdminAccess();
   if (!profile) return;
 
+  initializeTableSorting();
   initializeTabListeners();
   initializeForceExpiryCheckButton();
   initializeGroupForm();
   handleEditGroupSubmit();
+  initializeDiscountForm();
   await Promise.all([loadStats(), loadUsers(), loadGroupsIntoDropdown()]);
   
   // Initialize the tab system to ensure proper display

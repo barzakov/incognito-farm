@@ -101,6 +101,11 @@
             <i class="bi bi-tag"></i> Групи
           </button>
         </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="discounts-tab" data-bs-toggle="tab" data-bs-target="#discounts-panel" type="button" role="tab">
+            <i class="bi bi-percent"></i> Отстъпки
+          </button>
+        </li>
       </ul>
 
       <!-- Tab Content -->
@@ -161,6 +166,7 @@
                       <th>Име</th>
                       <th>Цена</th>
                       <th>Отстъпка</th>
+                      <th>Група</th>
                       <th>Наличност</th>
                       <th>Срок на годност</th>
                       <th>Действия</th>
@@ -168,7 +174,7 @@
                   </thead>
                   <tbody id="products-table-body">
                     <tr>
-                      <td colspan="8" class="text-center text-muted py-4">
+                      <td colspan="9" class="text-center text-muted py-4">
                         <div class="spinner-border spinner-border-sm text-success" role="status"></div>
                         Зареждане...
                       </td>
@@ -487,6 +493,41 @@
             </div>
           </div>
         </div>
+
+        <!-- Discounts Tab -->
+        <div class="tab-pane fade" id="discounts-panel" role="tabpanel">
+          <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="card-title mb-0">Отстъпки по групи</h5>
+                <button type="button" class="btn btn-success" id="addDiscountBtn">
+                  <i class="bi bi-plus-lg"></i> Добави отстъпка
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                  <thead>
+                    <tr>
+                      <th>Начало</th>
+                      <th>Край</th>
+                      <th>Отстъпка</th>
+                      <th>Статус</th>
+                      <th>Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody id="discounts-table-body">
+                    <tr>
+                      <td colspan="5" class="text-center text-muted py-4">
+                        <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+                        Зареждане...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </main>
@@ -549,8 +590,8 @@
             </div>
 
             <div class="mb-3">
-              <label for="product-discount" class="form-label">Отстъпка (лв.)</label>
-              <input type="number" class="form-control" id="product-discount" step="0.01" min="0">
+              <label for="product-discount" class="form-label">Отстъпка (%)</label>
+              <input type="number" class="form-control" id="product-discount" step="0.01" min="0" max="100">
             </div>
 
             <div class="mb-3">
@@ -671,8 +712,8 @@
             </div>
 
             <div class="mb-3">
-              <label for="edit-product-discount" class="form-label">Отстъпка (лв.)</label>
-              <input type="number" class="form-control" id="edit-product-discount" step="0.01" min="0">
+              <label for="edit-product-discount" class="form-label">Отстъпка (%)</label>
+              <input type="number" class="form-control" id="edit-product-discount" step="0.01" min="0" max="100">
             </div>
 
             <div class="mb-3">
@@ -864,6 +905,91 @@
     </div>
   </div>
 
+  <!-- Add Discount Modal -->
+  <div class="modal fade" id="addDiscountModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">Добави отстъпка</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
+        </div>
+        <form id="addDiscountForm">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="discount-start-date" class="form-label">Начална дата *</label>
+              <input type="date" class="form-control" id="discount-start-date" required>
+            </div>
+            <div class="mb-3">
+              <label for="discount-end-date" class="form-label">Крайна дата *</label>
+              <input type="date" class="form-control" id="discount-end-date" required>
+            </div>
+            <div class="mb-3">
+              <label for="discount-percentage" class="form-label">Отстъпка (%) *</label>
+              <input type="number" class="form-control" id="discount-percentage" min="0" max="100" step="0.01" placeholder="Напр. 15" required>
+              <small class="form-text text-muted">Процент отстъпка (0-100%)</small>
+            </div>
+            <div class="mb-3">
+              <label for="discount-group-select" class="form-label">Приложи за група *</label>
+              <select class="form-select" id="discount-group-select" required>
+                <option value="">Избери група...</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-plus-lg"></i> Добави
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Discount Modal -->
+  <div class="modal fade" id="editDiscountModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">Редактирай отстъпка</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
+        </div>
+        <form id="editDiscountForm">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="edit-discount-start-date" class="form-label">Начална дата *</label>
+              <input type="date" class="form-control" id="edit-discount-start-date" required>
+            </div>
+            <div class="mb-3">
+              <label for="edit-discount-end-date" class="form-label">Крайна дата *</label>
+              <input type="date" class="form-control" id="edit-discount-end-date" required>
+            </div>
+            <div class="mb-3">
+              <label for="edit-discount-percentage" class="form-label">Отстъпка (%) *</label>
+              <input type="number" class="form-control" id="edit-discount-percentage" min="0" max="100" step="0.01" placeholder="Напр. 15" required>
+              <small class="form-text text-muted">Процент отстъпка (0-100%)</small>
+            </div>
+            <div class="mb-3">
+              <label for="edit-discount-group-select" class="form-label">Група *</label>
+              <select class="form-select" id="edit-discount-group-select" required>
+                <option value="">Избери група...</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+            <button type="button" class="btn btn-danger" id="deleteDiscountBtn">
+              <i class="bi bi-trash"></i> Изтрий
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check-lg"></i> Запази
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Footer -->
   <div id="footer-container"></div>
 
@@ -874,3 +1000,4 @@
   <script type="module" src="/pages/admin/admin.js"></script>
 </body>
 </html>
+
