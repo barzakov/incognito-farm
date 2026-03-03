@@ -1,4 +1,4 @@
-import { supabase } from '../../lib/supabaseClient.js';
+import { supabase, fetchProductsWithGroupDiscounts, calculateBestDiscount } from '../../lib/supabaseClient.js';
 import { loadComponents } from '../../lib/components.js';
 import { toast } from '../../lib/toast.js';
 
@@ -119,15 +119,48 @@ function filterAndDisplayProducts() {
 // Load products from database
 async function loadProducts() {
   try {
-    const { data: products, error } = await supabase
+    const { data: productsWithDiscounts, error } = await supabase
       .from('products')
-      .select('*')
+      .select(`
+        product_id,
+        images_location,
+        description,
+        extra,
+        group_id,
+        price,
+        discount,
+        availability,
+        created_on,
+        product_group!left(
+          group_id,
+          name,
+          group_discount,
+          discount!left(
+            discount_id,
+            discount_percentage,
+            start_date,
+            end_date
+          )
+        )
+      `)
       .eq('availability', true)
       .order('product_id', { ascending: false });
 
     if (error) throw error;
 
-    allProducts = products || [];
+    // Enrich products with best discount calculation
+    allProducts = (productsWithDiscounts || []).map(p => {
+      const groupDiscount = p.product_group?.discount || null;
+      const discountInfo = calculateBestDiscount(p.price, p.discount, groupDiscount);
+      
+      return {
+        ...p,
+        finalPrice: discountInfo.finalPrice,
+        discountApplied: discountInfo.discountApplied,
+        discountSource: discountInfo.discountSource,
+      };
+    });
+
     filterAndDisplayProducts();
   } catch (err) {
     console.error('Error loading products:', err);
@@ -159,7 +192,7 @@ function displayProducts(products) {
     const productName = p.description?.name || 'Продукт';
     const briefInfo = p.description?.brief_info || '';
     const price = p.price != null ? `${Number(p.price).toFixed(2)} лв.` : 'По запитване';
-    const discountedPrice = p.discount != null ? `${Number(p.discount).toFixed(2)} лв.` : null;
+    const finalPrice = p.finalPrice != null && p.finalPrice !== p.price ? `${Number(p.finalPrice).toFixed(2)} лв.` : null;
     
     let productImage = '🌾';
     if (p.images_location) {
@@ -177,9 +210,10 @@ function displayProducts(products) {
             <h5 class="card-title">${productName}</h5>
             <p class="product-category text-muted">${briefInfo}</p>
             <div class="product-pricing">
-              ${discountedPrice ? `
+              ${finalPrice ? `
                 <p class="product-price text-muted" style="text-decoration: line-through; font-size: 0.9rem;">${price}</p>
-                <p class="product-price fw-bold text-success">${discountedPrice}</p>
+                <p class="product-price fw-bold text-success">${finalPrice}</p>
+                <small class="text-muted">${p.discountSource === 'group' ? '(Отстъпка на група)' : '(Специална цена)'}</small>
               ` : `
                 <p class="product-price fw-bold text-success">${price}</p>
               `}
@@ -225,7 +259,7 @@ function showProductDetail(product) {
   const fullInfo = product.description?.info || product.description?.brief_info || 'Няма описание';
   const briefInfo = product.description?.brief_info || 'Няма кратка информация';
   const price = product.price != null ? `${Number(product.price).toFixed(2)} лв.` : 'По запитване';
-  const discountedPrice = product.discount != null ? `${Number(product.discount).toFixed(2)} лв.` : null;
+  const finalPrice = product.finalPrice != null && product.finalPrice !== product.price ? `${Number(product.finalPrice).toFixed(2)} лв.` : null;
 
   let productImage = '🌾';
   if (product.images_location) {
@@ -243,10 +277,11 @@ function showProductDetail(product) {
   modalBtn.dataset.productId = product.product_id;
   modalBtn.dataset.productName = productName;
 
-  document.getElementById('productDetailPricing').innerHTML = discountedPrice
+  document.getElementById('productDetailPricing').innerHTML = finalPrice
     ? `
       <p class="original-price mb-1">Оригинална цена: ${price}</p>
-      <p class="final-price mb-0">Цена: ${discountedPrice}</p>
+      <p class="final-price mb-0">Цена: ${finalPrice}</p>
+      <small class="text-muted">${product.discountSource === 'group' ? 'Отстъпка на група' : 'Специална цена'}</small>
     `
     : `
       <p class="final-price mb-0">Цена: ${price}</p>

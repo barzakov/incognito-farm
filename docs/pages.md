@@ -19,6 +19,10 @@ Each page lives in its own directory under `src/pages/` and consists of an HTML 
 **Files:** `index.html`, `products.css`, `products.js`
 
 - Lists all available products with filter by product group.
+- Calculates and shows the best discount per product:
+	- individual product discount (`products.discount`, %)
+	- group discount (`discount.discount_percentage`, %)
+	- applies whichever gives lower final price.
 - Supports add-to-cart per product.
 - Date formatting uses Bulgarian locale (`bg-BG`).
 
@@ -29,6 +33,7 @@ Each page lives in its own directory under `src/pages/` and consists of an HTML 
 **Files:** `index.html`, `cart.css`, `cart.js`
 
 - Reads cart from `localStorage`, fetches product details from Supabase.
+- Uses the same best-discount logic as the products page (individual % vs group %).
 - Authenticated users can select a saved address and place an order.
 - On checkout: creates a row in `orders` with a snapshot of the product (`short_description`) and the price at time of order.
 - Clears cart after successful order.
@@ -71,9 +76,9 @@ Requires `boss = true`. Frontend access guard redirects non-boss users.
 | Section | Functionality |
 |---------|--------------|
 | Dashboard | Count of pending orders, products expiring within 5 days |
-| Products | Full CRUD — create, edit, delete products; set expiry date in `extra.expire`; manage availability |
+| Products | Full CRUD — create, edit, delete products; set expiry date in `extra.expire`; manage availability; set individual product discount in **%** |
 | Product groups | Create and delete groups |
-| Discounts | Create and delete discount periods |
+| Discounts | Create, edit, delete discount periods with date range and percentage; assign to product groups |
 | Orders | View all orders, update status |
 | Users | View all users, toggle boss flag, soft-delete |
 

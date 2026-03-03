@@ -47,6 +47,7 @@ erDiagram
         numeric   discount
         boolean   availability
         timestamp created_on
+        jsonb     images
     }
 
     product_group {
@@ -59,6 +60,7 @@ erDiagram
         bigint    discount_id  PK
         timestamp start_date
         timestamp end_date
+        numeric   discount_percentage
     }
 
     users        ||--o{ addresses     : "has"
@@ -83,6 +85,7 @@ erDiagram
 | `lastname` | text | |
 | `supa_user_uuid` | uuid | Links to `auth.users.id`; kept on auth user deletion |
 | `created_on` | timestamp | Default `now()` |
+| `images` | jsonb | Gallery metadata array for product images |
 | `deleted_on` | timestamp | Nullable — soft delete |
 | `boss` | boolean | Admin flag; default `false` |
 
@@ -111,7 +114,7 @@ Populated automatically by the `on_auth_user_created` trigger (see [Triggers](#t
 | `extra` | jsonb | `{ expire: "YYYY-MM-DD", … }` |
 | `group_id` | bigint FK → `product_group` | |
 | `price` | numeric | |
-| `discount` | numeric | Nullable |
+| `discount` | numeric | Nullable, **percentage** (0–100), individual product discount |
 | `availability` | boolean | Set to `false` automatically when expired |
 | `created_on` | timestamp | Default `now()` |
 
@@ -165,6 +168,12 @@ Populated automatically by the `on_auth_user_created` trigger (see [Triggers](#t
 | `discount_id` | bigint PK | |
 | `start_date` | timestamp | |
 | `end_date` | timestamp | |
+| `discount_percentage` | numeric | Percentage value (0–100) |
+
+> Discount selection rule in UI (`products` / `cart`):
+> - product-level discount = `products.discount` (%)
+> - group-level discount = `discount.discount_percentage` (%) via `product_group.group_discount`
+> - the system applies the **better discount** (lower final price) automatically.
 
 ---
 
@@ -218,3 +227,4 @@ RLS is enabled on all tables. Access is checked via the helper `public.is_boss()
 | `20260226200247_auth_rls_trigger.sql` | Auth trigger, `is_boss()`, all RLS policies |
 | `20260226211314_create_products_storage_bucket.sql` | Storage bucket + policies |
 | `20260227184635_auto_expire_products.sql` | Expiry trigger + pg_cron job |
+| `20260303132938_add_discount_percentage.sql` | Adds `discount.discount_percentage` (0–100) |

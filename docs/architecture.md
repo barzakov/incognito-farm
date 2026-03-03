@@ -89,6 +89,9 @@ Single Supabase client instance. Exports auth helpers used everywhere:
 | `fetchCurrentUserProfile()` | Fetch profile for the current auth user |
 | `isBoss()` | Check admin privileges |
 | `onAuthStateChange(callback)` | Subscribe to auth state |
+| `fetchAllDiscounts()` / `fetchDiscountById()` | Discount reads for admin panel |
+| `createDiscount()` / `updateDiscount()` / `deleteDiscount()` | Discount CRUD for admin panel |
+| `calculateBestDiscount(price, productDiscount, groupDiscount)` | Applies better discount between product % and group % |
 
 ### `components.js`
 Dynamically injects `Header.html` and `Footer.html` into every page, then:
@@ -123,6 +126,10 @@ The cart is stored in `localStorage` under the key `incognito_farm_cart`.
 ```
 
 On checkout (`/cart/`), product details are fetched from Supabase, the order is written to the `orders` table, and the cart is cleared.
+
+Product and cart pricing both use `calculateBestDiscount()` so users always receive the best available discount from:
+- product-level discount (`products.discount`, %)
+- group-level discount (`discount.discount_percentage`, %)
 
 ---
 

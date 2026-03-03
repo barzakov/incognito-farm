@@ -1,4 +1,4 @@
-import { supabase, fetchCurrentUserProfile } from '../../lib/supabaseClient.js';
+import { supabase, fetchCurrentUserProfile, fetchAllDiscounts, fetchDiscountById, createDiscount, updateDiscount, deleteDiscount } from '../../lib/supabaseClient.js';
 import { loadComponents } from '../../lib/components.js';
 import { toast } from '../../lib/toast.js';
 
@@ -250,13 +250,26 @@ async function loadProducts() {
   try {
     const { data: products, error } = await supabase
       .from('products')
-      .select('*')
+      .select(`
+        *,
+        product_group!left(
+          group_id,
+          name,
+          group_discount,
+          discount!left(
+            discount_id,
+            discount_percentage,
+            start_date,
+            end_date
+          )
+        )
+      `)
       .order('product_id', { ascending: false });
 
     if (error) throw error;
 
     if (!products || products.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Няма продукти</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Няма продукти</td></tr>';
       return;
     }
 
@@ -265,9 +278,31 @@ async function loadProducts() {
         ? '<span class="badge bg-success">Налично</span>'
         : '<span class="badge bg-danger">Недостъпно</span>';
       const price = p.price != null ? `${Number(p.price).toFixed(2)} лв.` : '–';
-      const discount = p.discount != null ? `${Number(p.discount).toFixed(2)} лв.` : '–';
+      
+      // Determine discount display
+      let discountDisplay = '–';
+      let discountBadge = '';
+      const productDiscountPercent = p.discount != null ? Number(p.discount) : null;
+      const groupDiscountPercent = p.product_group?.discount?.discount_percentage != null
+        ? Number(p.product_group.discount.discount_percentage)
+        : null;
+      const hasProductDiscount = productDiscountPercent != null && productDiscountPercent > 0;
+      const hasGroupDiscount = groupDiscountPercent != null && groupDiscountPercent > 0;
+      
+      if (hasProductDiscount && hasGroupDiscount) {
+        discountDisplay = `Инд. ${productDiscountPercent.toFixed(2)}% / Група ${groupDiscountPercent.toFixed(2)}%`;
+        discountBadge = '<span class="badge bg-info ms-2" title="Ще се приложи по-добрата отстъпка">2 вида</span>';
+      } else if (hasProductDiscount) {
+        discountDisplay = `${productDiscountPercent.toFixed(2)}%`;
+        discountBadge = '<span class="badge bg-warning ms-2">Индивидуална</span>';
+      } else if (hasGroupDiscount) {
+        discountDisplay = `${groupDiscountPercent.toFixed(2)}%`;
+        discountBadge = '<span class="badge bg-success ms-2">Група</span>';
+      }
+      
       const productName = p.description?.name || '–';
       const expireDate = formatDateForBulgarianUsers(p.extra?.expire || null);
+      const groupName = p.product_group?.name || '–';
       
       let imageThumb = '🌾';
       if (p.images_location) {
@@ -281,7 +316,8 @@ async function loadProducts() {
           <td>${p.product_id}</td>
           <td>${productName}</td>
           <td>${price}</td>
-          <td>${discount}</td>
+          <td>${discountDisplay}${discountBadge}</td>
+          <td>${groupName}</td>
           <td>${availabilityBadge}</td>
           <td>${expireDate}</td>
           <td>
@@ -299,7 +335,7 @@ async function loadProducts() {
     attachProductActions();
   } catch (err) {
     console.error('Error loading products:', err);
-    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Грешка при зареждане</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Грешка при зареждане</td></tr>';
   }
 }
 
@@ -579,6 +615,11 @@ async function handleEditProductSubmit(productId, form) {
       return;
     }
 
+    if (discount !== null && (discount < 0 || discount > 100)) {
+      toast.error('Отстъпката трябва да бъде между 0 и 100%.');
+      return;
+    }
+
     // Collect extra data (country, size, expire)
     const country = form.querySelector('#edit-product-country').value.trim();
     let expire = form.querySelector('#edit-product-expire').value;
@@ -837,6 +878,20 @@ function initializeProductForm() {
       const discount = form.querySelector('#product-discount').value ? parseFloat(form.querySelector('#product-discount').value) : null;
       const availability = form.querySelector('#product-availability').value === 'true';
       const groupId = form.querySelector('#product-group').value ? parseInt(form.querySelector('#product-group').value) : null;
+
+      if (!name || isNaN(price)) {
+        toast.error('Моля попълнете задължителните полета.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        return;
+      }
+
+      if (discount !== null && (discount < 0 || discount > 100)) {
+        toast.error('Отстъпката трябва да бъде между 0 и 100%.');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        return;
+      }
 
       // Collect extra data (country, size, expire)
       const country = form.querySelector('#product-country').value.trim();
@@ -1831,6 +1886,289 @@ function handleEditGroupSubmit() {
   form.dataset.initialized = 'true';
 }
 
+// ─── Discounts table ────────────────────────────────────────
+
+async function loadDiscounts() {
+  const tbody = document.getElementById('discounts-table-body');
+  try {
+    const discounts = await fetchAllDiscounts();
+
+    if (!discounts || discounts.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Няма отстъпки</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = discounts.map((d) => {
+      const today = new Date().toISOString().split('T')[0];
+      const startDate = new Date(d.start_date).toLocaleDateString('bg-BG');
+      const endDate = new Date(d.end_date).toLocaleDateString('bg-BG');
+      const isActive = today >= d.start_date.split('T')[0] && today <= d.end_date.split('T')[0];
+      const statusBadge = isActive ? '<span class="badge bg-success">Активна</span>' : '<span class="badge bg-secondary">Неактивна</span>';
+      const percentage = d.discount_percentage != null ? `${Number(d.discount_percentage).toFixed(2)}%` : '–';
+
+      return `
+        <tr>
+          <td>${startDate}</td>
+          <td>${endDate}</td>
+          <td>${percentage}</td>
+          <td>${statusBadge}</td>
+          <td>
+            <button type="button" class="btn btn-sm btn-outline-primary edit-discount-btn" data-discount-id="${d.discount_id}">
+              <i class="bi bi-pencil"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    attachDiscountActions();
+  } catch (err) {
+    console.error('Error loading discounts:', err);
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Грешка при зареждане</td></tr>';
+  }
+}
+
+function attachDiscountActions() {
+  document.querySelectorAll('.edit-discount-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const discountId = parseInt(btn.dataset.discountId);
+      showEditDiscountModal(discountId);
+    });
+  });
+}
+
+async function loadGroupsIntoDiscountDropdowns() {
+  const { data: groups } = await supabase
+    .from('product_group')
+    .select('group_id, name')
+    .order('name', { ascending: true });
+
+  if (groups) {
+    const addGroupSelect = document.getElementById('discount-group-select');
+    const editGroupSelect = document.getElementById('edit-discount-group-select');
+
+    const groupOptions = groups.map((g) => `<option value="${g.group_id}">${g.name}</option>`).join('');
+
+    if (addGroupSelect) {
+      addGroupSelect.innerHTML = '<option value="">Избери група...</option>' + groupOptions;
+    }
+    if (editGroupSelect) {
+      editGroupSelect.innerHTML = '<option value="">Избери група...</option>' + groupOptions;
+    }
+  }
+}
+
+async function showEditDiscountModal(discountId) {
+  try {
+    const discount = await fetchDiscountById(discountId);
+    if (!discount) {
+      toast.error('Отстъпка не намерена');
+      return;
+    }
+
+    // Get the group that has this discount
+    const { data: group } = await supabase
+      .from('product_group')
+      .select('group_id')
+      .eq('group_discount', discountId)
+      .single();
+
+    const startDate = new Date(discount.start_date).toISOString().split('T')[0];
+    const endDate = new Date(discount.end_date).toISOString().split('T')[0];
+
+    document.getElementById('edit-discount-start-date').value = startDate;
+    document.getElementById('edit-discount-end-date').value = endDate;
+    document.getElementById('edit-discount-percentage').value = discount.discount_percentage || 0;
+    
+    await loadGroupsIntoDiscountDropdowns();
+    if (group) {
+      document.getElementById('edit-discount-group-select').value = group.group_id;
+    }
+
+    const editForm = document.getElementById('editDiscountForm');
+    editForm.dataset.discountId = discountId;
+    editForm.dataset.currentGroupId = group?.group_id || '';
+
+    // Clear previous delete listener
+    const deleteBtn = document.getElementById('deleteDiscountBtn');
+    deleteBtn.removeEventListener('click', deleteDiscountHandler);
+    deleteBtn.addEventListener('click', deleteDiscountHandler);
+
+    // eslint-disable-next-line no-undef
+    new bootstrap.Modal(document.getElementById('editDiscountModal')).show();
+  } catch (err) {
+    console.error('Error loading discount:', err);
+    toast.error('Грешка при зареждане на отстъпка');
+  }
+}
+
+async function deleteDiscountHandler() {
+  const form = document.getElementById('editDiscountForm');
+  const discountId = parseInt(form.dataset.discountId);
+
+  if (!confirm('Сигурни ли сте, че желаете да изтриете тази отстъпка?')) return;
+
+  try {
+    // Clear group_discount reference
+    const currentGroupId = parseInt(form.dataset.currentGroupId);
+    if (currentGroupId) {
+      await supabase
+        .from('product_group')
+        .update({ group_discount: null })
+        .eq('group_id', currentGroupId);
+    }
+
+    // Delete discount
+    await deleteDiscount(discountId);
+
+    toast.success('Отстъпка изтрита успешно');
+    
+    // eslint-disable-next-line no-undef
+    const modal = bootstrap.Modal.getInstance(document.getElementById('editDiscountModal'));
+    if (modal) modal.hide();
+    
+    await loadDiscounts();
+  } catch (err) {
+    console.error('Error deleting discount:', err);
+    toast.error('Грешка при изтриване на отстъпка');
+  }
+}
+
+function handleAddDiscountSubmit() {
+  const form = document.getElementById('addDiscountForm');
+  if (!form || form.dataset.initialized === 'true') return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const startDate = document.getElementById('discount-start-date').value;
+    const endDate = document.getElementById('discount-end-date').value;
+    const percentage = parseFloat(document.getElementById('discount-percentage').value);
+    const groupId = parseInt(document.getElementById('discount-group-select').value);
+
+    if (!startDate || !endDate || !groupId || isNaN(percentage)) {
+      toast.error('Всички полета са задължителни');
+      return;
+    }
+
+    if (percentage < 0 || percentage > 100) {
+      toast.error('Отстъпката трябва да бъде между 0 и 100%');
+      return;
+    }
+
+    if (new Date(startDate) >= new Date(endDate)) {
+      toast.error('Началната дата трябва да бъде преди крайната дата');
+      return;
+    }
+
+    try {
+      const newDiscount = await createDiscount({
+        start_date: `${startDate}T00:00:00`,
+        end_date: `${endDate}T23:59:59`,
+        discount_percentage: percentage,
+      });
+
+      // Assign discount to group
+      await supabase
+        .from('product_group')
+        .update({ group_discount: newDiscount.discount_id })
+        .eq('group_id', groupId);
+
+      toast.success('Отстъпка добавена успешно');
+      form.reset();
+      
+      // eslint-disable-next-line no-undef
+      const modal = bootstrap.Modal.getInstance(document.getElementById('addDiscountModal'));
+      if (modal) modal.hide();
+      
+      await loadDiscounts();
+    } catch (err) {
+      console.error('Error adding discount:', err);
+      toast.error('Грешка при добавяне на отстъпка');
+    }
+  });
+
+  form.dataset.initialized = 'true';
+}
+
+function handleEditDiscountSubmit() {
+  const form = document.getElementById('editDiscountForm');
+  if (!form || form.dataset.initialized === 'true') return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const discountId = parseInt(form.dataset.discountId);
+    const currentGroupId = parseInt(form.dataset.currentGroupId);
+    const startDate = document.getElementById('edit-discount-start-date').value;
+    const endDate = document.getElementById('edit-discount-end-date').value;
+    const percentage = parseFloat(document.getElementById('edit-discount-percentage').value);
+    const newGroupId = parseInt(document.getElementById('edit-discount-group-select').value);
+
+    if (!startDate || !endDate || !newGroupId || isNaN(percentage)) {
+      toast.error('Всички полета са задължителни');
+      return;
+    }
+
+    if (percentage < 0 || percentage > 100) {
+      toast.error('Отстъпката трябва да бъде между 0 и 100%');
+      return;
+    }
+
+    if (new Date(startDate) >= new Date(endDate)) {
+      toast.error('Началната дата трябва да бъде преди крайната дата');
+      return;
+    }
+
+    try {
+      // Update discount dates and percentage
+      await updateDiscount(discountId, {
+        start_date: `${startDate}T00:00:00`,
+        end_date: `${endDate}T23:59:59`,
+        discount_percentage: percentage,
+      });
+
+      // Update group reference if group changed
+      if (currentGroupId !== newGroupId) {
+        if (currentGroupId) {
+          await supabase
+            .from('product_group')
+            .update({ group_discount: null })
+            .eq('group_id', currentGroupId);
+        }
+
+        await supabase
+          .from('product_group')
+          .update({ group_discount: discountId })
+          .eq('group_id', newGroupId);
+      }
+
+      toast.success('Отстъпка обновена успешно');
+      
+      // eslint-disable-next-line no-undef
+      const modal = bootstrap.Modal.getInstance(document.getElementById('editDiscountModal'));
+      if (modal) modal.hide();
+      
+      await loadDiscounts();
+    } catch (err) {
+      console.error('Error updating discount:', err);
+      toast.error('Грешка при обновяване на отстъпка');
+    }
+  });
+
+  form.dataset.initialized = 'true';
+}
+
+function initializeDiscountForm() {
+  document.getElementById('addDiscountBtn').addEventListener('click', async () => {
+    document.getElementById('addDiscountForm').reset();
+    await loadGroupsIntoDiscountDropdowns();
+    // eslint-disable-next-line no-undef
+    new bootstrap.Modal(document.getElementById('addDiscountModal')).show();
+  });
+
+  handleAddDiscountSubmit();
+  handleEditDiscountSubmit();
+}
+
 // ─── Tab change listeners ────────────────────────────────────
 
 function initializeTabListeners() {
@@ -1838,6 +2176,7 @@ function initializeTabListeners() {
   const productsTab = document.getElementById('products-tab');
   const ordersTab = document.getElementById('orders-tab');
   const groupsTab = document.getElementById('groups-tab');
+  const discountsTab = document.getElementById('discounts-tab');
 
   if (usersTab) {
     usersTab.addEventListener('shown.bs.tab', () => {
@@ -1882,6 +2221,12 @@ function initializeTabListeners() {
     groupsTab.addEventListener('shown.bs.tab', () => {
       loadGroups();
       loadStats(); // Refresh stats when switching to groups tab
+    });
+  }
+  if (discountsTab) {
+    discountsTab.addEventListener('shown.bs.tab', () => {
+      loadDiscounts();
+      loadStats(); // Refresh stats when switching to discounts tab
     });
   }
 
@@ -1940,6 +2285,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initializeForceExpiryCheckButton();
   initializeGroupForm();
   handleEditGroupSubmit();
+  initializeDiscountForm();
   await Promise.all([loadStats(), loadUsers(), loadGroupsIntoDropdown()]);
   
   // Initialize the tab system to ensure proper display
