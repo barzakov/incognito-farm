@@ -1,9 +1,7 @@
 import { supabase, fetchCurrentUserProfile, calculateBestDiscount } from '../../lib/supabaseClient.js';
 import { loadComponents } from '../../lib/components.js';
 import { toast } from '../../lib/toast.js';
-
-// Cart stored in localStorage (for now, until we implement database cart)
-const CART_STORAGE_KEY = 'incognito_farm_cart';
+import { getCart, saveCart, updateCartBadge } from '../../lib/cartUtils.js';
 
 // Order status definitions
 const ORDER_STATUSES = {
@@ -19,41 +17,6 @@ const ORDER_STATUSES = {
 // Cached product data for checkout
 let cachedCartProducts = [];
 let selectedAddressId = null;
-
-// Get cart from localStorage
-function getCart() {
-  try {
-    const cart = localStorage.getItem(CART_STORAGE_KEY);
-    return cart ? JSON.parse(cart) : [];
-  } catch (error) {
-    console.error('Error reading cart:', error);
-    return [];
-  }
-}
-
-// Save cart to localStorage
-function saveCart(cart) {
-  try {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-  } catch (error) {
-    console.error('Error saving cart:', error);
-  }
-}
-
-// Update cart badge in header
-function updateCartBadge() {
-  const cart = getCart();
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const badge = document.getElementById('cart-badge');
-  if (badge) {
-    if (totalItems > 0) {
-      badge.textContent = totalItems;
-      badge.classList.remove('d-none');
-    } else {
-      badge.classList.add('d-none');
-    }
-  }
-}
 
 // Load cart items and display
 async function loadCartItems() {

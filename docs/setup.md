@@ -45,6 +45,7 @@ Migrations live in `supabase/migrations/`. Apply them in chronological order via
 20260226200247_auth_rls_trigger.sql
 20260226211314_create_products_storage_bucket.sql
 20260227184635_auto_expire_products.sql
+20260303132938_add_discount_percentage.sql
 ```
 
 > **Rule:** never edit existing migration files. Add new migrations to `supabase/migrations_applyed/`, apply them, then move to `supabase/migrations/` and mark read-only.

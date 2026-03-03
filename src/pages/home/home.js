@@ -1,49 +1,28 @@
 import { supabase, calculateBestDiscount } from '../../lib/supabaseClient.js';
 import { loadComponents } from '../../lib/components.js';
 import { toast } from '../../lib/toast.js';
+import { getCart, saveCart, addToCart, updateCartBadge } from '../../lib/cartUtils.js';
 
-const CART_STORAGE_KEY = 'incognito_farm_cart';
 let discountedProducts = [];
-
-// ── Cart helpers ──────────────────────────────────────────────
-
-function getCart() {
-  try {
-    const cart = localStorage.getItem(CART_STORAGE_KEY);
-    return cart ? JSON.parse(cart) : [];
-  } catch { return []; }
-}
-
-function saveCart(cart) {
-  try {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-    updateCartBadge();
-  } catch (e) { console.error('Error saving cart:', e); }
-}
-
-function addToCart(productId, quantity = 1) {
-  const cart = getCart();
-  const existing = cart.find(i => i.productId === productId);
-  if (existing) { existing.quantity += quantity; } else { cart.push({ productId, quantity }); }
-  saveCart(cart);
-}
-
-function updateCartBadge() {
-  const cart = getCart();
-  const total = cart.reduce((s, i) => s + i.quantity, 0);
-  const badge = document.getElementById('cart-badge');
-  if (badge) {
-    if (total > 0) { badge.textContent = total; badge.classList.remove('d-none'); }
-    else { badge.classList.add('d-none'); }
-  }
-}
 
 // ── Auth status ──────────────────────────────────────────────
 
+function toggleGuestCta(isLoggedIn) {
+  const ctaSection = document.querySelector('.cta-section');
+  if (!ctaSection) return;
+
+  ctaSection.classList.toggle('d-none', Boolean(isLoggedIn));
+}
+
 async function checkAuthStatus() {
-  if (!supabase) return;
+  if (!supabase) {
+    toggleGuestCta(false);
+    return;
+  }
+
   try {
     const { data: { user } } = await supabase.auth.getUser();
+    toggleGuestCta(Boolean(user));
     if (user) updateAuthUI(user);
   } catch (error) { console.error('Error checking auth:', error); }
 }
@@ -328,7 +307,14 @@ function showProductDetail(product) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   await loadComponents();
-  checkAuthStatus();
+  await checkAuthStatus();
+
+  if (supabase) {
+    supabase.auth.onAuthStateChange((_event, session) => {
+      toggleGuestCta(Boolean(session?.user));
+    });
+  }
+
   await loadDiscountCarousel();
 
   // Modal add-to-cart handler

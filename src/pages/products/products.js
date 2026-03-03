@@ -1,69 +1,10 @@
 import { supabase, fetchProductsWithGroupDiscounts, calculateBestDiscount } from '../../lib/supabaseClient.js';
 import { loadComponents } from '../../lib/components.js';
 import { toast } from '../../lib/toast.js';
+import { getCart, saveCart, addToCart, updateCartBadge, formatDateForBulgarianUsers } from '../../lib/cartUtils.js';
 
 let allProducts = [];
 let selectedGroupId = null;
-
-const CART_STORAGE_KEY = 'incognito_farm_cart';
-
-// Cart functions
-function getCart() {
-  try {
-    const cart = localStorage.getItem(CART_STORAGE_KEY);
-    return cart ? JSON.parse(cart) : [];
-  } catch (error) {
-    console.error('Error reading cart:', error);
-    return [];
-  }
-}
-
-function saveCart(cart) {
-  try {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
-    updateCartBadge();
-  } catch (error) {
-    console.error('Error saving cart:', error);
-  }
-}
-
-function addToCart(productId, quantity = 1) {
-  const cart = getCart();
-  const existingItem = cart.find(item => item.productId === productId);
-  
-  if (existingItem) {
-    existingItem.quantity += quantity;
-  } else {
-    cart.push({ productId, quantity });
-  }
-  
-  saveCart(cart);
-}
-
-function updateCartBadge() {
-  const cart = getCart();
-  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const badge = document.getElementById('cart-badge');
-  
-  if (badge) {
-    if (totalItems > 0) {
-      badge.textContent = totalItems;
-      badge.classList.remove('d-none');
-    } else {
-      badge.classList.add('d-none');
-    }
-  }
-}
-
-function formatDateForBulgarianUsers(dateValue) {
-  if (!dateValue || typeof dateValue !== 'string') return '';
-
-  const normalizedValue = dateValue.includes('T') ? dateValue : `${dateValue}T00:00:00`;
-  const parsedDate = new Date(normalizedValue);
-
-  if (Number.isNaN(parsedDate.getTime())) return dateValue;
-  return parsedDate.toLocaleDateString('bg-BG');
-}
 
 // Load product groups and create filter buttons
 async function loadGroups() {

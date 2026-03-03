@@ -47,7 +47,6 @@ erDiagram
         numeric   discount
         boolean   availability
         timestamp created_on
-        jsonb     images
     }
 
     product_group {
@@ -69,7 +68,7 @@ erDiagram
     products     }o--|| product_group  : "belongs to"
 ```
 
-> `orders.product_id` has **no foreign key** by design — product details can change after an order is placed. A snapshot is stored in `orders.short_description`.
+> `orders.product_id` has **no foreign key** by design — product details can change after an order is placed. Order item snapshots are stored in `orders.order_extra.items`.
 
 ---
 
@@ -85,7 +84,6 @@ erDiagram
 | `lastname` | text | |
 | `supa_user_uuid` | uuid | Links to `auth.users.id`; kept on auth user deletion |
 | `created_on` | timestamp | Default `now()` |
-| `images` | jsonb | Gallery metadata array for product images |
 | `deleted_on` | timestamp | Nullable — soft delete |
 | `boss` | boolean | Admin flag; default `false` |
 
@@ -129,13 +127,29 @@ Populated automatically by the `on_auth_user_created` trigger (see [Triggers](#t
 | `product_id` | bigint | No FK — intentional snapshot pattern |
 | `price` | numeric | Price at time of order |
 | `discount` | numeric | Discount at time of order |
-| `short_description` | jsonb | `{ name, brief_info }` snapshot |
+| `short_description` | jsonb | Optional short note/summary (currently text or `null` in app flows) |
 | `order_status` | jsonb | `{ current_status: "…" }` |
 | `order_done` | boolean | Default `false` |
 | `order_date` | timestamp | Default `now()` |
 | `order_extra` | jsonb | Notes, delivery preferences |
 | `order_archived` | boolean | Default `false` |
 | `order_user_delete` | boolean | User has requested hiding this order |
+
+### JSONB field contracts (current usage)
+
+The database allows flexible JSONB values. The app currently uses these shapes:
+
+| Column | Current JSON shape |
+|--------|---------------------|
+| `addresses.address` | `{ street, city, postal_code, phone, email, extra_info, is_default }` |
+| `addresses.order_extra` | `null` or custom object |
+| `products.description` | `{ name, brief_info, info }` |
+| `products.extra` | `{ country, size: { грамове, килограми, бройки, active }, expire }` |
+| `orders.short_description` | `string` note or `null` |
+| `orders.order_status` | `{ current_status, history: [{ status, date, note }] }` |
+| `orders.order_extra` | `{ items: [{ product_id, name, brief_info, quantity, unit_price, unit_discount, line_total }], address, address_id, notes }` |
+
+> Recommendation: keep these payload shapes stable across frontend and seed scripts to avoid runtime parsing mismatches.
 
 **Order status values** (Bulgarian UI strings):
 

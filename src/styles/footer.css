@@ -121,11 +121,3 @@ footer .text-center p {
     justify-content: flex-start;
   }
 }
-  .footer-content {
-    gap: var(--spacing-md);
-  }
-
-  .social-icons {
-    gap: var(--spacing-sm);
-  }
-}

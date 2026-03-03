@@ -35,7 +35,7 @@ Each page lives in its own directory under `src/pages/` and consists of an HTML 
 - Reads cart from `localStorage`, fetches product details from Supabase.
 - Uses the same best-discount logic as the products page (individual % vs group %).
 - Authenticated users can select a saved address and place an order.
-- On checkout: creates a row in `orders` with a snapshot of the product (`short_description`) and the price at time of order.
+- On checkout: creates a row in `orders` with line-item snapshots in `order_extra.items`, plus status history and delivery details.
 - Clears cart after successful order.
 
 ---

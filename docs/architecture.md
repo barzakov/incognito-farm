@@ -18,7 +18,7 @@
 ```
 src/
 ├── index.html              # Root redirect / landing
-├── components/             # Component source templates
+├── components/             # Deprecated placeholders (do not use)
 │   ├── Header.html
 │   └── Footer.html
 ├── lib/                    # Shared utilities (imported by all pages)
@@ -36,7 +36,7 @@ src/
 │   ├── about/
 │   └── contact/
 ├── public/
-│   └── components/         # Static copies served by Vite
+│   └── components/         # Runtime header/footer source served by Vite
 └── styles/
     ├── global.css
     ├── header.css

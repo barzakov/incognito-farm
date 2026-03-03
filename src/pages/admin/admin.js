@@ -1,6 +1,7 @@
 import { supabase, fetchCurrentUserProfile, fetchAllDiscounts, fetchDiscountById, createDiscount, updateDiscount, deleteDiscount } from '../../lib/supabaseClient.js';
 import { loadComponents } from '../../lib/components.js';
 import { toast } from '../../lib/toast.js';
+import { formatDateForBulgarianUsers } from '../../lib/cartUtils.js';
 
 // ─── DOM references ──────────────────────────────────────────
 const adminLoading = () => document.getElementById('admin-loading');
@@ -102,14 +103,35 @@ async function loadGroupsIntoDropdown() {
   }
 }
 
-function formatDateForBulgarianUsers(dateValue) {
-  if (!dateValue || typeof dateValue !== 'string') return '–';
+/**
+ * Convert ISO date (YYYY-MM-DD) to Bulgarian format (DD.MM.YYYY)
+ */
+function formatDateBulgarian(isoDate) {
+  if (!isoDate) return '';
+  const date = new Date(isoDate);
+  return date.toLocaleDateString('bg-BG');
+}
 
-  const normalizedValue = dateValue.includes('T') ? dateValue : `${dateValue}T00:00:00`;
-  const parsedDate = new Date(normalizedValue);
-
-  if (Number.isNaN(parsedDate.getTime())) return dateValue;
-  return parsedDate.toLocaleDateString('bg-BG');
+/**
+ * Convert Bulgarian date input (DD.MM.YYYY) to ISO format (YYYY-MM-DD)
+ * or return the ISO date if already in that format
+ */
+function parseAndFormatDateToISO(dateString) {
+  if (!dateString) return '';
+  
+  // If already in ISO format (YYYY-MM-DD), return as is
+  if (/^\d{4}-\d{2}-\d{2}/.test(dateString)) {
+    return dateString.split('T')[0];
+  }
+  
+  // Try to parse Bulgarian format (DD.MM.YYYY)
+  const bgMatch = dateString.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (bgMatch) {
+    const [, day, month, year] = bgMatch;
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  }
+  
+  return dateString;
 }
 
 const TABLE_SORT_CONFIG = {
@@ -2136,12 +2158,21 @@ async function showEditDiscountModal(discountId) {
       .eq('group_discount', discountId)
       .single();
 
+    // Convert to ISO format for input type="date"
     const startDate = new Date(discount.start_date).toISOString().split('T')[0];
     const endDate = new Date(discount.end_date).toISOString().split('T')[0];
 
     document.getElementById('edit-discount-start-date').value = startDate;
     document.getElementById('edit-discount-end-date').value = endDate;
     document.getElementById('edit-discount-percentage').value = discount.discount_percentage || 0;
+    
+    // Display Bulgarian formatted dates as placeholders for user clarity
+    const startDateBG = formatDateBulgarian(startDate);
+    const endDateBG = formatDateBulgarian(endDate);
+    const startDateInput = document.getElementById('edit-discount-start-date');
+    const endDateInput = document.getElementById('edit-discount-end-date');
+    startDateInput.placeholder = startDateBG;
+    endDateInput.placeholder = endDateBG;
     
     await loadGroupsIntoDiscountDropdowns();
     if (group) {
