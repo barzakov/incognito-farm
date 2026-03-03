@@ -50,7 +50,8 @@ export default defineConfig({
   },
   build: {
     outDir: '../dist',
-    minify: 'terser',
+    emptyOutDir: true,
+    minify: 'esbuild',
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'src/index.html'),
