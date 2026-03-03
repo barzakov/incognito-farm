@@ -163,7 +163,7 @@ function displayProducts(products) {
               `}
             </div>
             <button class="btn btn-success btn-sm add-to-cart-btn d-inline-flex align-items-center justify-content-center gap-2" data-product-id="${p.product_id}" data-product-name="${productName}" onclick="event.stopPropagation();">
-              <img src="/pages/cart/karuca.svg" alt="" class="btn-cart-icon" /> Добави в каруца
+              <img src="/karuca.svg" alt="" class="btn-cart-icon" /> Добави в каруца
             </button>
           </div>
         </div>

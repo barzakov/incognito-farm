@@ -26,7 +26,7 @@ async function loadCartItems() {
   if (!cart || cart.length === 0) {
     container.innerHTML = `
       <div class="empty-cart">
-        <img src="/pages/cart/karuca.svg" alt="Каруца" class="cart-icon-lg" />
+        <img src="/karuca.svg" alt="Каруца" class="cart-icon-lg" />
         <p class="mt-3 text-muted">Вашата каруца е празна</p>
         <a href="/products/" class="btn btn-success mt-3">
           <i class="bi bi-arrow-left"></i> Разгледайте продуктите
