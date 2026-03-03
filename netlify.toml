@@ -1,0 +1,99 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Route rewrites for generated MPA files under /pages
+[[redirects]]
+  from = "/"
+  to = "/pages/home/home.html"
+  status = 200
+
+[[redirects]]
+  from = "/home"
+  to = "/pages/home/home.html"
+  status = 200
+
+[[redirects]]
+  from = "/home/"
+  to = "/pages/home/home.html"
+  status = 200
+
+[[redirects]]
+  from = "/products"
+  to = "/pages/products/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/products/"
+  to = "/pages/products/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/about"
+  to = "/pages/about/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/about/"
+  to = "/pages/about/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/contact"
+  to = "/pages/contact/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/contact/"
+  to = "/pages/contact/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/cart"
+  to = "/pages/cart/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/cart/"
+  to = "/pages/cart/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to = "/pages/admin/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/"
+  to = "/pages/admin/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/user"
+  to = "/pages/user/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/user/"
+  to = "/pages/user/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/auth/login"
+  to = "/pages/auth/login.html"
+  status = 200
+
+[[redirects]]
+  from = "/auth/login/"
+  to = "/pages/auth/login.html"
+  status = 200
+
+[[redirects]]
+  from = "/auth/register"
+  to = "/pages/auth/register.html"
+  status = 200
+
+[[redirects]]
+  from = "/auth/register/"
+  to = "/pages/auth/register.html"
+  status = 200
